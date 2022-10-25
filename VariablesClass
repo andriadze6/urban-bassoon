@@ -1,0 +1,395 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using Microsoft.VisualBasic;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.ExprotDataFromtbPMOptionenPCFGruppe;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner
+{
+    /// <summary>
+    /// W17 variable 
+    /// </summary>
+    public class W17Variables
+    {
+        /// <summary>
+        /// SAbzugFPflachBisGlas constant
+        /// </summary>
+        private const double SAbzugFPflachBisGlas = 52;
+
+        /// <summary>
+        /// SAbzugFPhochBisGlas constant
+        /// </summary>
+        private const double SAbzugFPhochBisGlas = 65;
+
+        /// <summary>
+        /// Consructor for class
+        /// </summary>
+        /// <param name="pmvalues">All Pm values</param>
+        /// <param name="wingsNumber">wings number</param>
+        public W17Variables(W17PmConteiner pmvalues, int wingsNumber)
+        {
+            this.SumwingsNumber = wingsNumber;
+            this.Pmvalues = pmvalues;
+            this.SBezFluegel = new string[11];
+            if (pmvalues.FPUnten.Substring(0, 2) == "fb")
+            {
+                this.SAbzugVerwenden = SAbzugFPflachBisGlas;
+            }
+            else
+            {
+                this.SAbzugVerwenden = SAbzugFPhochBisGlas;
+            }
+            this.SHoehecalculation();
+
+            this.SHoeheEFcalculation();
+
+            if (pmvalues.Stulp == "0")
+            {
+                this.SAbzugStulp = 0;
+                this.SAnzUeberlapp = this.SumwingsNumber - 1;
+            }
+            else
+            {
+                this.SAbzugStulp = 10;
+                this.SAnzUeberlapp = this.SumwingsNumber - 2;
+            }
+            this.SUeberlappungScheiben = this.SAnzUeberlapp * 32;
+            this.SBreiteScheiben = this.Breitecalculation();
+            this.SHoeheScheiben = this.Heightcalculation();
+            this.Glassweight = this.GlassWeightPer1m2();
+            this.SumWeight = this.CulculateSumWeight();
+            for (int i = 1; i <= 10; i++)
+            {
+                this.SBezFluegel[i] = "Ausführung_100_1";
+            }
+            this.SBezFluegelFillup();
+            if (pmvalues.Daempfer == 2 || pmvalues.Daempfer == 3)
+            {
+                this.SBezFluegelFillUp1();
+            }
+        }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public string[] SBezFluegel { get; set; }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public double SHoeheScheiben { get; set; }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public double SHoeheEF { get; set; }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public double SHoehe { get; set; }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public string SBez { get; set; }
+
+        /// <summary>
+        /// variable value
+        /// </summary>
+        public string SBezEF { get; set; }
+
+        /// <summary>
+        /// vairaibel value
+        /// </summary>
+        public double SBreiteScheiben { get; set; }
+
+        /// <summary>
+        /// Glass weight + profiles weight
+        /// </summary>
+        public double SumWeight { get; set; }
+
+        /// <summary>
+        /// Number of wings Total
+        /// </summary>
+        public double SumwingsNumber { get; set; }
+
+        /// <summary>
+        /// Glass weight per m2(kg)
+        /// </summary>
+        private double Glassweight { get; set; }
+
+        /// <summary>
+        /// sAbzugVerwenden  variable
+        /// </summary>
+        private double SAbzugVerwenden { get; set; }
+
+        /// <summary>
+        /// variable sAbzugStulp
+        /// </summary>
+        private double SAbzugStulp { get; set; }
+
+        /// <summary>
+        /// variable SUeberlappungScheiben
+        /// </summary>
+        private double SAnzUeberlapp { get; set; }
+
+        /// <summary>
+        /// variable SUeberlappungScheiben
+        /// </summary>
+        private double SUeberlappungScheiben { get; set; }
+
+        /// <summary>
+        /// pmv alues 
+        /// </summary>
+        private W17PmConteiner Pmvalues { get; set; }
+
+        /// <summary>
+        /// Glass weight per 1m2
+        /// </summary>
+        /// <returns>double value</returns>
+        private double GlassWeightPer1m2()
+        {
+            double weightPer1m2 = 0;
+            if (this.Pmvalues.GlasTypWert == 6)
+            {
+                weightPer1m2 = 15;
+            }
+            if (this.Pmvalues.GlasTypWert == 8)
+            {
+                weightPer1m2 = 20;
+            }
+            if (this.Pmvalues.GlasTypWert == 10)
+            {
+                weightPer1m2 = 25;
+            }
+            if (this.Pmvalues.GlasTypWert == 12)
+            {
+                weightPer1m2 = 30;
+            }
+            return weightPer1m2;
+        }
+
+        /// <summary>
+        /// Glaclualts sum glas and profiles weight
+        /// </summary>
+        /// <returns>double value</returns>
+        private double CulculateSumWeight()
+        {
+            var glassWeight = this.SBreiteScheiben * this.SHoeheScheiben * this.Glassweight / 1000000;
+            var profileWeight = this.GlasaufnahmekomplettWeightcal();
+            var sumWeight = glassWeight + profileWeight;
+            return sumWeight;
+        }
+
+        /// <summary>
+        /// calculates  Glasaufnahmeprofil lenght
+        /// </summary>
+        /// <returns>double value</returns>
+        private double GlasaufnahmeprofilCulculation()
+        {
+            const double GlasaufnahmeprofilEnd = 2; ////mm
+            var langth = this.SBreiteScheiben + (2 * GlasaufnahmeprofilEnd) + 1;
+            return langth;
+        }
+
+        /// <summary>
+        /// calculates Sum weight of all necessary profiles.
+        /// </summary>
+        /// <returns>double value</returns>
+        private double GlasaufnahmekomplettWeightcal()
+        {
+            const double Ca = 0.7; ////Gewicht Glasaufnahme komplett kg/m 
+            var glasaufnahmeprofil = this.GlasaufnahmeprofilCulculation();
+            var profileWeight = glasaufnahmeprofil / 1000 * Ca;
+            return profileWeight;
+        }
+
+        /// <summary>
+        /// calculatis Glass width
+        /// </summary>
+        /// <returns>double Value</returns>
+        private double Breitecalculation()
+        {
+            var brete = (this.Pmvalues.Breite - this.Pmvalues.SAbzugSeiteL - this.Pmvalues.SAbzugSeiteR - this.SAbzugStulp + this.SUeberlappungScheiben) / this.SumwingsNumber;
+            brete = Conv.sRound(brete + 0.01, 0, -1);
+            brete = brete - 1;
+            return brete;
+        }
+
+        /// <summary>
+        /// calculates Glass height
+        /// </summary>
+        /// <returns>double Value</returns>
+        private double Heightcalculation()
+        {
+            var height = this.Pmvalues.Tiefe - 45 - this.SAbzugVerwenden;
+            height = height - 1;
+            return height;
+        }
+
+        /// <summary>
+        /// SBezFluegel Fiil Up1 
+        /// </summary>
+        private void SBezFluegelFillUp1()
+        {
+            switch (this.Pmvalues.Oeffnungsrichtung)
+            {
+                case "b":
+                    for (int i = 2; i <= Convert.ToInt32(this.SumwingsNumber / (2 - 1)); i++)
+                    {
+                        this.SBezFluegel[i] = "Ausführung_100_10";
+                    }
+                    for (int i = Convert.ToInt32(this.SumwingsNumber / (2 + 2)); i <= Convert.ToInt32(this.SumwingsNumber - 1); i++)
+                    {
+                        this.SBezFluegel[i] = "Ausführung_100_11";
+                    }
+                    break;
+                case "l":
+                    for (int i = 2; i <= Convert.ToInt32(this.SumwingsNumber - 1); i++)
+                    {
+                        this.SBezFluegel[i] = "Ausführung_100_10";
+                    }
+                    break;
+                case "r":
+                    for (int i = 2; i <= Convert.ToInt32(this.SumwingsNumber - 1); i++)
+                    {
+                        this.SBezFluegel[i] = "Ausführung_100_11";
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Set Glass weight(kg) per 1m2
+        /// </summary>
+        private void SetGlassWeight()
+        {
+            var glassthickness = this.Pmvalues.GlasTypWert;
+            if (glassthickness == 6)
+            {
+                this.Glassweight = 15;
+            }
+            if (glassthickness == 8)
+            {
+                this.Glassweight = 20;
+            }
+            if (glassthickness == 10)
+            {
+                this.Glassweight = 25;
+            }
+            if (glassthickness == 12)
+            {
+                this.Glassweight = 30;
+            }
+        }
+
+        /// <summary>
+        /// SBezFluegel array fill up
+        /// </summary>
+        private void SBezFluegelFillup()
+        {
+            var element1 = (int)this.SumwingsNumber / 2;
+            var elemenT2 = (int)this.SumwingsNumber / (2 + 1);
+            var sHoeheEF = Convert.ToString(this.SHoeheEF);
+            var sumwingsNumber = Convert.ToInt32(this.SumwingsNumber);
+            var pcfGruppeParametrs = "PCFGruppe = '6-WiGa-Vertikal'and PMName = 'FluegelVarianten'";
+            var vorauswahlBedienung = Convert.ToString(this.Pmvalues.VorauswahlBedienung);
+            var zahl1Value = " and Zahl1 = '" + vorauswahlBedienung;
+            var deampfer = Convert.ToString(this.Pmvalues.Daempfer);
+            var zahl2Value = "' and Zahl2 = '" + deampfer;
+            var text2 = " and Text2 = '" + this.Pmvalues.Oeffnungsrichtung;
+            var text3 = "' and Text3 = 'Geh'";
+            var text1Default = "' and Text1 = '0'";
+            var vorauswahlBedienungEF = Convert.ToString(this.Pmvalues.VorauswahlBedienungEF);
+            var zahl1EFValue = " and Zahl1 = '" + vorauswahlBedienungEF;
+            var daempferEF = Convert.ToString(this.Pmvalues.DaempferEF);
+            var zahl3EFValue = "' and Zahl3 ='" + daempferEF;
+            var text3EF = "' and Text3 = 'End'";
+
+            switch (this.Pmvalues.Oeffnungsrichtung)
+            {
+                case "b":
+                    var shoehe = Convert.ToString(this.SHoehe);
+                    var text1L = "' and Text1 = 'links'";
+                    var text1r = "' and Text1 = 'rechts'";             
+                    var paramet1 = pcfGruppeParametrs + zahl1Value + zahl2Value + text1L + text2 + text3;
+                    var paramet2 = pcfGruppeParametrs + zahl1Value + zahl2Value + text1r + text2 + text3;
+                    this.SBezFluegel[element1] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", paramet1, "0");       
+                    this.SBezFluegel[element1] = this.SBezFluegel[element1] + " " + this.SBez + " = " + shoehe;
+                    this.SBezFluegel[elemenT2] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", paramet2, "0");
+                    this.SBezFluegel[elemenT2] = this.SBezFluegel[elemenT2] + " " + this.SBez + " = " + shoehe;
+                    if (this.Pmvalues.VorauswahlBedienungEF != 0)
+                    {
+                        var paramet1EF = pcfGruppeParametrs + zahl1EFValue + zahl2Value + zahl3EFValue + text1L + text2 + text3EF;
+                        var paramet2EF = pcfGruppeParametrs + zahl1EFValue + zahl2Value + zahl3EFValue + text1r + text2 + text3EF;
+                        this.SBezFluegel[1] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", paramet1EF, "0");
+                        this.SBezFluegel[1] = this.SBezFluegel[1] + " " + this.SBezEF + " = " + sHoeheEF;
+                        this.SBezFluegel[Convert.ToInt32(this.SumwingsNumber)] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", paramet2EF, "0");
+                        this.SBezFluegel[Convert.ToInt32(this.SumwingsNumber)] = this.SBezFluegel[sumwingsNumber] + " " + this.SBezEF + " = " + sHoeheEF;
+                    }
+                    break;
+                default:
+                    var parametDefault = pcfGruppeParametrs + zahl1Value + zahl2Value + text1Default + text2 + text3;
+                    this.SBezFluegel[1] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", parametDefault, "0");
+                    this.SBezFluegel[1] = this.SBezFluegel[1] + " " + this.SBez + " = " + Convert.ToString(this.SHoehe);
+                    if (this.Pmvalues.VorauswahlBedienungEF != 0)
+                    {
+                        var parametDefaultEF = pcfGruppeParametrs + zahl1EFValue + zahl2Value + zahl3EFValue + text1Default + text2 + text3EF;
+                        this.SBezFluegel[sumwingsNumber] = Data.RstLookupNz("lOption", "tbPMOptionenPCFGruppe", parametDefaultEF, "0");
+                        this.SBezFluegel[sumwingsNumber] = this.SBezFluegel[sumwingsNumber] + " " + this.SBezEF + " = " + sHoeheEF;
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// SHoehe calculation
+        /// </summary>
+        private void SHoehecalculation()
+       {
+            switch (this.Pmvalues.VorauswahlBedienung)
+            {
+                case 1:
+                case 2:
+                    this.SHoehe = this.Pmvalues.HoeheGriff - this.SAbzugVerwenden;
+                    this.SBez = "HG";
+                    break;
+                case 3:
+                    this.SHoehe = this.Pmvalues.HoeheSpezialFuss1 - this.SAbzugVerwenden;
+                    this.SBez = "HL";
+                    break;
+                case 4:
+                    this.SHoehe = this.Pmvalues.HoeheWAOt - this.SAbzugVerwenden - 46;
+                    this.SBez = "HS";
+                    break;
+            }
+       }
+
+        /// <summary>
+        /// SHoeheEF calculation
+        /// </summary>
+        private void SHoeheEFcalculation()
+        {
+            switch (this.Pmvalues.VorauswahlBedienungEF.ToString())
+            {
+                case "1":
+                case "2":
+                    this.SHoeheEF = this.Pmvalues.HoeheBedienungEF - this.SAbzugVerwenden;
+                    this.SBezEF = "HG";
+                    break;
+                case "3":
+                    this.SHoeheEF = this.Pmvalues.HoeheBedienungEF - this.SAbzugVerwenden;
+                    this.SBezEF = "HL";
+                    break;
+                case "4":
+                    this.SHoeheEF = this.Pmvalues.HoeheBedienungEF - this.SAbzugVerwenden - 46;
+                    this.SBezEF = "HS";
+                    break;
+            }
+        }
+    }
+}
