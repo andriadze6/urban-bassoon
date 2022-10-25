@@ -1,0 +1,255 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using PcfOOP;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurePmconteiner;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurevariableConteiner
+{
+    /// <summary>
+    /// Pura variable Class
+    /// </summary>
+    public class PureVariableConteiner
+    {       
+        /// <summary>
+        /// satict aludummiReal
+        /// </summary>
+        public const int AludummiReal = 300;
+
+        /// <summary>
+        /// satict glaseinstand
+        /// </summary>
+        public const double Glaseinstand = 17.5;
+
+        /// <summary>
+        /// satict qszwischenGlas
+        /// </summary>
+        public const int QszwischenGlas = 25;
+
+        /// <summary>
+        /// satict qszwischenGlasHalbe
+        /// </summary>
+        public const double QszwischenGlasHalbe = 12.5;
+
+        /// <summary>
+        /// satict diffBreite
+        /// </summary>
+        private const int DiffBreite = 70;
+
+        /// <summary>
+        ///  PureVariableConteiner conrutor
+        /// </summary>
+        /// <param name="pureaPmClass">pm Class</param>
+        public PureVariableConteiner(PurePmConteinerClass pureaPmClass)
+        {
+            this.PureaPmClass = pureaPmClass;
+            this.GlasBreite = this.PureaPmClass.AchsmassSum - DiffBreite;
+            this.Lgp = this.GetLGP();
+            ////these lengths must NOT! be written in the list!
+            this.Aludummi = this.QSHorizontal((AludummiReal + QszwischenGlasHalbe));
+            this.QuerSprosseEing = (this.PureaPmClass.AuswahlQS == 1) ? this.PureaPmClass.QuerSprosseEing : 0;
+            this.QosQsmittig = this.QSHorizontal(((this.Lgp - ((2 - 1) * 25)) / 2) + 12.5);
+            ////workaround variable!
+            int length = this.PureaPmClass.AnzDachFelder;
+            this.QS1_Feld = new double[length];
+            this.QS1Pos_Feld = new double[length];
+            this.QS2Pos_Feld = new double[length];
+            this.Aluflag = new int[length];
+            this.SwitchSituation();
+            this.Assignvalues();
+        }
+
+        /// <summary>
+        /// situation for swict
+        /// </summary>
+        public string Situation { get; set; }
+
+        /// <summary>
+        /// PM Breite Number Value
+        /// </summary>
+        public double Lgp { get; set; }
+
+        /// <summary>
+        /// Variable QS1_Feld
+        /// </summary>
+        public double[] QS1_Feld { get; set; }
+
+        /// <summary>
+        /// Variable QS1_Feld
+        /// </summary>
+        public double QS2_Feld { get; set; }
+
+        /// <summary>
+        /// Variable QS1Pos_Feld
+        /// </summary>
+        public double[] QS1Pos_Feld { get; set; }
+
+        /// <summary>
+        /// Variable QS2Pos_Feld
+        /// </summary>
+        public double[] QS2Pos_Feld { get; set; }
+
+        /// <summary>
+        /// Aluflag Variable
+        /// </summary>
+        public int[]Aluflag { get; set; }
+
+        /// <summary>
+        /// Glass Width
+        /// </summary>
+        public double GlasBreite { get; set; }
+
+        /// <summary>
+        /// Aludummi Variable 
+        /// </summary>
+        private double Aludummi { get; set; }
+
+        /// <summary>
+        /// ConteinerClasscs
+        /// </summary>
+        private PurePmConteinerClass PureaPmClass { get; set; }
+
+        /// <summary>
+        /// QosQsmittig Variable 
+        /// </summary>
+        private double QosQsmittig { get; set; }
+
+        /// <summary>
+        /// QuerSprosseEing Variable 
+        /// </summary>
+        private double QuerSprosseEing { get; set; }
+
+        /// <summary>
+        /// Calculates Lgg (but we are talking about LGP = total length of the glass) according to Plausis D101 calculation cross rung.
+        /// 13.05.2020: changed: public, replaces from now on the standard calculation of LGP (depth - 60).
+        /// </summary>
+        /// <returns>double Value of LGp</returns>
+        private double GetLGP()
+        {
+            var ag_1 = 30;
+            var glasbisUKSchnittkante = 28; ////Abstand UK Glasscheibe bis Schnittkante/Unterkante GAP
+            var ag_2 = 20; ////Abstand Glas zu Pfosten innen horizontal
+            var x_2 = glasbisUKSchnittkante * Math.Sin(this.PureaPmClass.A_rad); //// Abstand Glasscheibe zu Schnittkante/Unterkante GAP
+            var x_1 = (ag_2 - x_2) / Math.Cos(this.PureaPmClass.A_rad); ////Abstand Glasscheibe zu Pfosten Innen
+            var x_3 = ag_1 / Math.Cos(this.PureaPmClass.A_rad); ////Abstand Glasscheibe zur Wand
+            var fRet = (this.PureaPmClass.Tiefe / Math.Cos(this.PureaPmClass.A_rad)) - x_3 - x_1;
+            return Conv.sRound(fRet, 2, 0); ////immer auf 2 Nachkommastellen genau;
+        }
+
+        /// <summary>
+        /// giand 06.04.2022
+        /// Seat cross rung or aluminum - returns the final value Horizontal! - Is also called in the PCF!
+        /// Attention: PUBLIC! - function will be used internally at a later time.
+        /// External accesses:
+        /// CrossRungEing: if QsCenter is set
+        /// DynFeldConfig: if QsMittig setxtern in DynFeldConfig
+        /// Depth is not yet available at the respective time.
+        /// Therefore - ensure that depth is fetched if 0.
+        /// </summary>
+        /// <param name="sq_1">Input Value</param>
+        /// <returns>sqh_1 double</returns>
+        private double QSHorizontal(double sq_1)
+        {
+            const double Ag_1 = 30;
+            double a_rad = this.PureaPmClass.A_rad;
+            double glasbisUKQS = 8.5;
+            double x3 = Ag_1 / Math.Cos(a_rad);
+            double fRet = ((sq_1 + x3) * Math.Cos(a_rad)) - (Math.Tan(a_rad) * glasbisUKQS);
+            return Conv.sRound(fRet, 2, 0);
+        }
+
+        /// <summary>
+        /// Switch Situation
+        /// </summary>
+        private void SwitchSituation()
+        {
+            this.Situation = "0";
+            if (this.PureaPmClass.AuswahlQS == 0 && this.PureaPmClass.QuersprosseZus == 0) { this.Situation = "1"; }
+            if (this.PureaPmClass.AuswahlQS == 1 && this.PureaPmClass.QuersprosseZus == 0) { this.Situation = "2"; }
+            if (this.PureaPmClass.AuswahlQS == 0 && this.PureaPmClass.QuersprosseZus == 1) { this.Situation = "3"; }
+            ////default
+            if (this.PureaPmClass.AuswahlQS == 1 && this.PureaPmClass.QuersprosseZus == 1) { this.Situation = "4"; }            
+        }
+
+        /// <summary>
+        /// Assign Values 
+        /// </summary>
+        private void Assignvalues()
+        {
+            if (this.Situation != "1" || this.Situation != "2")
+            {
+                for (int i = 0; i <= this.PureaPmClass.AnzDachFelder - 1; i++)
+                {
+                    if (this.PureaPmClass.AuswahlQS == 1)
+                    {
+                        this.QS1_Feld[i] = 1;
+                        this.QS1Pos_Feld[i] = this.QuerSprosseEing;
+                    }
+                    else
+                    {
+                        this.QS1_Feld[i] = this.PureaPmClass.QS1_Feld[i];
+                    }
+                    ////Workaround for missing features
+                    this.QS2_Feld = this.PureaPmClass.QS2_Feld[i];
+                    ////2. for 1 transverse rung per roof bay
+                    if (this.QS1_Feld[i] != 0 && this.QS2_Feld == 0)
+                    {
+                        if (this.PureaPmClass.QS1Typ_Feld[i] == 2)
+                        {
+                            this.QS1Pos_Feld[i] = this.Aludummi;
+                            this.Aluflag[i] = 1;
+                        }
+                        else
+                        {
+                            if (this.PureaPmClass.QS1Mittig_Feld[i] != 0)
+                            {
+                                this.QS1Pos_Feld[i] = this.QosQsmittig;
+                            }
+                            else
+                            {
+                                this.QS1Pos_Feld[i] = (this.PureaPmClass.AuswahlQS == 1) ? this.QuerSprosseEing : this.PureaPmClass.QS1Pos_Feld[i];
+                            }
+                        }
+                    }
+                    ////3. For the 2nd transverse rung per roof bay completely different rules:
+                    if (this.QS1_Feld[i] != 0 && this.QS2_Feld != 0)
+                    {
+                        if (this.PureaPmClass.QS1Typ_Feld[i] == 2)
+                        {
+                            this.QS1Pos_Feld[i] = this.Aludummi;
+                            this.Aluflag[i] = 1;
+                        }
+                        else
+                        {
+                            if (this.PureaPmClass.QS1Mittig_Feld[i] != 0)
+                            {
+                                this.QS1Pos_Feld[i] = this.QosQsmittig;
+                            }
+                            else
+                            {
+                                this.QS1Pos_Feld[i] = (this.PureaPmClass.AuswahlQS == 1) ? this.QuerSprosseEing : this.PureaPmClass.QS2Pos_Feld[i];
+                            }
+                        }
+                        if (this.PureaPmClass.QS2Typ_Feld[i] == 2)
+                        {
+                            this.QS2Pos_Feld[i] = this.QS1Pos_Feld[i] + this.Aludummi;
+                            this.Aluflag[i] = 1;
+                        }
+                        else
+                        {
+                            this.QS2Pos_Feld[i] = this.PureaPmClass.QS2Pos_Feld[i];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
