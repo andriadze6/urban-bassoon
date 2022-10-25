@@ -1,0 +1,555 @@
+@{
+    ViewBag.Title = "index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Stylesheets {
+    <link href="@Url.Content("~/Content/themes/jquery.dataTables.min.css")" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.datatables.net/select/1.2.2/css/select.dataTables.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdn.datatables.net/buttons/1.3.1/css/buttons.dataTables.min.css" rel="stylesheet" type="text/css" />
+    <link href="@Url.Content("~/Content/bootstrap/css/WeinorDesign.css")" rel="stylesheet" type="text/css" />
+
+    <style>
+
+        #dialog-confirm {
+            background-color: #dbe0ea !important;
+            color: white !important;
+        }
+
+        div.ui-dialog-titlebar.ui-corner-all.ui-widget-header.ui-helper-clearfix.ui-draggable-handle {
+            background-color: #dbe0ea !important;
+            color: #000;
+            border-radius: 0px;
+            border: 1px solid #ccc;
+        }
+
+        div.ui-dialog-buttonpane.ui-widget-content.ui-helper-clearfix {
+            background-color: #dbe0ea !important;
+            color: black !important;
+            margin-top: 0px;
+        }
+
+        .ui-widget-header, .ui-widget-content {
+            background: none !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: white !important;
+        }
+
+        a#stueliKabelTotals_previous.paginate_button.previous.disabled, a.paginate_button.current, a.paginate_button, a#stueliKabelTotals_next.paginate_button.next {
+            background-color: #e3000f !important;
+            color: white !important;
+            border-radius: 0px;
+        }
+
+        a.dt-button, .ui-button, button.ui-button.ui-corner-all.ui-widget {
+            background-color: #e3000f !important;
+            background-image: none;
+            color: white !important;
+            border: 1px solid #e3000f !important;
+            border-radius: 0px !important;
+        }
+
+            a.dt-button:hover, .ui-button:hover {
+                border: 1px solid #ff313b !important;
+                background-color: #ff313b !important;
+                background-image: none !important;
+            }
+
+            a.dt-button:focus {
+                border: 1px solid #ff313b !important;
+                background-color: #ff313b !important;
+                background-image: none !important;
+            }
+
+        .w-100 {
+            border: none;
+        }
+
+        .white-back {
+            padding: 15px;
+            border-radius: 15px;
+            background-color: #fff;
+        }
+
+        .row {
+            margin-left: -15px;
+        }
+
+        .table-wrapper {
+            padding: 15px;
+        }
+
+        #stueliKabelTotals {
+            table-layout: fixed;
+            width: 100% !important;
+        }
+
+            #stueliKabelTotals td,
+            #stueliKabelTotals th {
+                width: auto !important;
+                white-space: normal;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+
+            #stueliKabelTotals th, .dataTables_wrapper .dataTables_info {
+                border-bottom: none;
+            }
+
+            #stueliKabelTotals th, table.dataTable.no-footer {
+                border-bottom: none;
+            }
+
+        select {
+            color: #000000 !important;
+            height: 38px !important;
+            border: none;
+        }
+
+        .ui-widget.ui-widget-content {
+            background-color: ##dbe0ea !important;
+            color: white !important;
+            border: none;
+        }
+
+        #stueliKabelPrimary, #Bedienungsart, #stueliKabelSecondary {
+            margin-top: 25px !important;
+            height: 50px !important;
+            display: flex;
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+            margin-bottom: 20px !important;
+        }
+
+        h4 {
+            color: black !important;
+        }
+
+        #addOk, #close, #editOk, #editClose {
+            width: 47% !important;
+            height: 36px !important;
+            margin-left: 13px !important;
+        }
+
+        #addDiv {
+            margin-left: 0px !important;
+        }
+
+        input.form-control {
+            background-color: white !important;
+        }
+
+        #select1, #select2, #select3 {
+            background-color: #0b3a5a !important;
+            color: white !important;
+            margin-top: 25px;
+            height: 50px !important;
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+            margin-bottom: 20px !important;
+            width: 30%;
+        }
+
+        .modal-footer.W-input-wrapper {
+            padding-top: 45px;
+            padding-right: 30px;
+            padding-bottom: 0px;
+        }
+
+        .control-group > .control-label {
+            color: #000;
+        }
+
+        .ui-widget-overlay {
+            background: #eee;
+            opacity: 0.7;
+        }
+
+        .ui-widget {
+            font-family: frutiger;
+        }
+
+        #stueliKabelTotals > tbody tr:hover {
+            background: #f5f5f5 !important;
+            color: black !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: none;
+            background-color: red;
+            border-radius: 0px;
+            border: none;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        table.dataTable tbody tr:nth-child(2n) {
+            background: #e6e6e6;
+            color: black;
+        }
+
+        form {
+            width: 100%;
+            margin-top: 5px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+    </style>
+}
+<h3>Stückliste und PCF-Vorlage Kabel Lamellendach</h3>
+<div class="W-input-wrapper">
+    <form>
+        <select id="select1" class="selected" style="display:none; width : 30%">
+        </select>
+        <select id="select2" style="display:none" class="selected">
+        </select>
+        <select id="select3" style="display:none" class="selected" value="Placeholder">
+        </select>
+    </form>
+    <div class="table-wrapper" class="bodyhover">
+        <table id="stueliKabelTotals" class="cell-border compact stripe"></table>
+    </div>
+</div>
+<div id="dialog-confirm" title="Are you sure?" style="display:none;">
+    <p style="color: black !important; margin-top: 15px;"><span class="ui-icon ui-icon-alert" style="float:left; margin: 2px 12px 20px 0;"></span>Are you sure you want to delete it?</p>
+</div>
+
+<!-- Modal -->
+<div id="editModal" class="modal fade W-input-wrapper" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header ">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Bearbeiten</h4>
+            </div>
+            <div class="modal-body " id="modalBody">
+            </div>
+            <div class="modal-footer W-input-wrapper">
+                <button type="button" class="W-activBtn" data-dismiss="modal" id="editOk">Bestätigen</button>
+                <button type="button" class="W-activBtn" data-dismiss="modal" id="editClose">Schliessen</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Modal -->
+<div id="addModal" class="modal fade W-input-wrapper" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Hinzufügen</h4>
+            </div>
+            <div class="modal-body" id="modalBodyAdd">
+            </div>
+            <div id="addDiv" class="modal-footer W-input-wrapper">
+                <button type="button" class="W-activBtn" data-dismiss="modal" id="addOk">Bestätigen</button>
+                <button type="button" class="W-activBtn" data-dismiss="modal" id="close">Schliessen</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+@section Scripts {
+    <script src="@Url.Content("~/Scripts/jquery.dataTables.js")" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/select/1.2.2/js/dataTables.select.min.js" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/buttons/1.3.1/js/dataTables.buttons.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var kabelPrimary = '@Url.Content("~/StueliKabel/GetStueliKabelPrimary")';
+        var kabelSecondary = '@Url.Content("~/StueliKabel/GetStueliKabelSecondary")';
+        var kabelTotals = '@Url.Content("~/StueliKabel/GetStueliKabelTotals")';
+        var deleteKabelTotal = '@Url.Content("~/StueliKabel/DeleteKabelTotals")';
+        var saveKabelTotal = '@Url.Content("~/StueliKabel/SaveKabelTotals")';
+        const primaryObj = {};
+        let bedienungsartArray = [];
+        let table;
+        window.addEventListener('load', function () {
+            $.ajax({
+                url: kabelPrimary,
+                type: "POST",
+                contentType: "application/json",
+                success: function (result) {
+                    const arr = [];
+                    result.Value.forEach(function (element) {
+                        const bedienungsart = element.Bedienungsart.trim();
+                        if (bedienungsart in primaryObj) {
+                            primaryObj[bedienungsart].push({ Name: element.Name, ID: element.Id });
+                        }
+                        else {
+                            const array = [{ Name: element.Name, ID: element.Id }];
+                            primaryObj[bedienungsart] = array;
+                        }
+                        arr.push(bedienungsart);
+                    })
+                    bedienungsartArray = new Set(arr);
+                    BuildSelect1(bedienungsartArray)
+                }
+            })
+        })
+        function BuildSelect1(data) {
+            $(`#select2`).hide();
+            $(`#select1`).show();
+            let html = "<option selected>Auswahl</option>";
+            for (let [i, el] of data.entries()) {
+                html += `<option value="${i++}">${el}</option>`;
+            };
+            $("#select1").append(html);
+        }
+        $("#select1").change(function () {
+            $(`#select2`).empty();
+            $(`#select3`).empty();
+            $(`#select3`).hide();
+            $(`#select2`).hide();
+            $("#stueliKabelTotals").hide();
+            let html = "<option selected>Auswahl</option>";
+            const bedienungsartValueSelected = $("#select1 option:selected").text().trim();
+            for (const [bedienungsart, kabellPrimery] of Object.entries(primaryObj)) {
+                if (bedienungsart === bedienungsartValueSelected) {
+                    for (const [Index, obj] of kabellPrimery.entries()) {
+                        html += `<option value="${obj.ID}">${obj.Name}</option>`;
+                    }
+                    $(`#select2`).append(html);
+                    $(`#select2`).show();
+                }
+            };
+        });
+        $("#select2").change(function () {
+            $("#select3").empty();
+            $("#stueliKabelTotals").hide();
+            const id = $("#select2 option:selected").val();
+            $.ajax({
+                url: '@Url.Action("GetStueliKabelSecondary", "StueliKabel")',
+                data: { primaryId: Number(id) },
+                success: function (result) {
+                    let html = "<option selected>Auswahl</option>";
+                    for (const [Index, obj] of result.entries()) {
+                        html += `<option value="${obj.Id}">${obj.Name}</option>`;
+                    }
+                    $(`#select3`).append(html);
+                    $("#select3").show();
+                }
+            })
+        })
+        $("#select3").change(function () {
+            $("#stueliKabelTotals").empty();
+            $("#stueliKabelTotals").hide();
+            const id = $("#select3 option:selected").val();
+            $.ajax({
+                url: '@Url.Action("GetStueliKabelTotals", "StueliKabel")',
+                data: { secondaryId: Number(id) },
+                success: function (result) {
+                    const test = result;
+                    table = BuildTable('stueliKabelTotals', result);
+                }
+            })
+        })
+            $("#dialog-confirm").dialog({
+                autoOpen: false,
+                resizable: false,
+                height: "auto",
+                width: 400,
+                modal: true,
+                buttons: {
+                    Ok: function () {
+                        var obj = $(this).data("obj");
+                        DeleteItem(obj.Id);
+                        $(this).dialog("close");
+                    },
+                    Cancel: function () {
+                        $(this).dialog("close");
+                    }
+                }
+            });
+            $('#editOk').on('click', function () {
+                var obj = {};
+                $('#modalBody form *').filter(':input').each(function () {
+                    var id = $(this).attr('id');
+                    var val = $(this).val();
+                    obj[id] = val;
+
+                });
+                if (obj != {}) {
+                    $.ajax({
+                        url: saveKabelTotal,
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ input: obj }),
+                        success: function () {
+                            var allRows = table.rows().data().toArray();
+                            var temp = allRows.filter(function (x) {
+                                return x.Id == obj.Id;
+                            })[0];
+
+                            if (temp) {
+                                $('#stueliKabelTotals').dataTable().fnUpdate(obj, allRows.indexOf(temp), undefined, false);
+                            }
+                        }
+                    });
+                }
+            });
+            $('#addOk').on('click', function () {
+                var obj = {};
+                $('#modalBodyAdd form *').filter(':input').each(function () {
+                    var id = $(this).attr('id');
+                    var val = $(this).val();
+                    obj[id] = val;
+
+                });
+
+                if (obj != {}) {
+                    $.ajax({
+                        url: saveKabelTotal,
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({ input: obj }),
+                        success: function () {
+                            table.row.add(obj).draw(false);
+                        }
+                    });
+                }
+            });
+        function DeleteItem(id) {
+            $.ajax({
+                url: deleteKabelTotal,
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ id: id }),
+                success: function () {
+                    var tr = $('.selected')[0];
+                    table.row(tr)
+                        .remove()
+                        .draw();
+                }
+            });
+        }
+        function SendGetRequest(url, successCallback, data) {
+            var options = {
+                url: url,
+                type: 'GET',
+                contentType: 'application/json',
+                success: function(data) { successCallback(data) }
+            };
+
+            if (data) {
+                options.data = data;
+            }
+
+            $.ajax(options);
+        }
+        function GetFormForModal(obj) {
+            var modelBodyStr = '<form data-toggle="validator" role="form" class="form-horizontal">';
+
+            for (var key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    var val = obj[key] == null ? "" : obj[key].toString().replace(/"/g, '&quot;');
+                    var isDisabled = key.includes("Id") ? "disabled" : "";
+
+                    modelBodyStr += '<div class="control-group">\
+                        <label class="control-label" for="' + key + '">' +
+                            key + ':</label>\
+                        <div class="controls">\
+                             <input type="text" class="form-control" id="' + key + '" value="' + val + '" ' + isDisabled + '/>\
+                        </div>\
+                    </div>';
+                }
+            }
+            return modelBodyStr + '</form>';
+        }
+        function destroyTable(containerId) {
+            if ($.fn.DataTable.isDataTable('#' + containerId)) {
+                $('#' + containerId).DataTable().destroy();
+            }
+        }
+        function BuildTable(containerId, data) {
+            destroyTable(containerId);
+            var table = $('#' + containerId).DataTable({
+                data: data,
+                dom: 'Blrftip',
+                "select": 'single',
+                "buttons": [
+                    {
+                        text: 'Hinzufügen',
+                        action: function () {
+                            var obj = {
+                                SecondaryPartId: $('#stueliKabelSecondary select').val(),
+                                ArtikelNr: '',
+                                Bezeichnung: '',
+                                Anzahl: '',
+                                Bemerkungen: '',
+                                Direction: '',
+                                Verwendungszweck: '',
+                                Sortierung: ''
+                            };
+                            $('#modalBodyAdd').html(GetFormForModal(obj));
+                            $('#addModal').modal('show');
+                        }
+                    },
+                    {
+                        text: "Bearbeiten",
+                        action: function () {
+                            var row = table.rows('.selected').data().toArray();
+                            if (row.length > 0) {
+                                $('#modalBody').html(GetFormForModal(row[0]));
+                                $('#editModal').modal('show');
+                            }
+                        }
+                    },
+                    {
+                        text: "Löschen",
+                        action: function () {
+                            var row = table.rows('.selected').data().toArray();
+                            if (row.length > 0) {
+                                $("#dialog-confirm").data("obj", row[0]);
+                                $("#dialog-confirm").dialog('open');
+                            }
+                        }
+                    }
+                ],
+                "columns": [
+                    {
+                        "data": "SecondaryPartId", title: "SecondaryPartId"
+                    },
+                    {
+                        "data": "ArtikelNr", title: "ArtikelNr"
+                    },
+                    {
+                        "data": "Bezeichnung", title: "Bezeichnung"
+                    },
+                    {
+                        "data": "Anzahl", title: "Anzahl"
+                    },
+                    {
+                        "data": "Bemerkungen", title: "Bemerkungen"
+                    },
+                    {
+                        "data": "Direction", title: "Direction"
+                    },
+                    {
+                        "data": "Sortierung", title: "Sortierung"
+                    },
+                    {
+                        "data": "Verwendungszweck", title: "Verwendungszweck"
+                    }
+                ],
+                 "oLanguage": {
+                    oPaginate: {
+                        sNext: '<span class="pagination-default">Vor</span>',
+                        sPrevious: '<span class="pagination-default">Zurück </span>'
+                    },
+                    "sSearch": "Suchen",
+                    "sLengthMenu": "Zeige _MENU_ Zeilen",
+                    "sInfo": "Zeige _END_  von  _MAX_ Einträgen"
+
+                 }
+            });
+            $('#stueliKabelTotals').show();
+            return table;
+        }
+    </script>
+}
