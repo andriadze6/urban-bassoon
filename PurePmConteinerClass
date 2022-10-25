@@ -1,0 +1,139 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassTerrazza;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurePmconteiner
+{
+    /// <summary>
+    /// Terrazza pure pm  class
+    /// </summary>
+    public class PurePmConteinerClass : PmConteinertGlassTerrazza 
+    {
+        /// <summary>
+        /// ConteinerClasscs
+        /// </summary>
+        /// <param name="convertingClass">ConteinerClasscs input</param>
+        public PurePmConteinerClass(PmTrasferFromSqlcs convertingClass) : base(convertingClass)
+        {
+            this.QS1_Feld = new List<double>();
+            this.QS2_Feld = new List<double>();
+            this.QS1Pos_Feld = new List<double>();
+            this.QS1Mittig_Feld = new List<double>();
+            this.QS1Typ_Feld = new List<double>();
+            this.QS2Typ_Feld = new List<double>();
+            this.QS2Pos_Feld = new List<double>();
+            this.AuswahlQS = convertingClass.GetpmWertAsNumber("AuswahlQS");
+            this.AchsmassSum = convertingClass.GetpmWertAsNumber("AchsmassSum");
+            this.Breite = convertingClass.GetpmWertAsNumber("Breite");
+            this.Tiefe = convertingClass.GetpmWertAsNumber("Tiefe");
+            this.AnzDachFelder = Convert.ToInt32(convertingClass.GetpmWertAsNumber("AnzDachFelder"));
+            this.QuerSprosseEing = convertingClass.GetpmWertAsNumber("QuersprosseEing");
+            this.LaengeDT1 = convertingClass.GetpmWertAsNumber("LaengeDT1");
+            this.DRNeu = convertingClass.GetpmWertAsNumber("DRNeu");
+            double atemp = (this.Tiefe < 2600) ? 3.24 : 2.126;
+            this.A_rad = atemp / 180 * Math.PI;            
+            for (int i = 1; i <= this.AnzDachFelder; i++)
+            {
+                var qS1_FeldValue = convertingClass.GetpmWertAsNumber(("QS1_Feld" + i).ToString());
+                this.QS1_Feld.Add(qS1_FeldValue);
+                var qS2_Feld = convertingClass.GetpmWertAsNumber(("QS2_Feld" + i).ToString());
+                this.QS2_Feld.Add(qS2_Feld);
+                var qS1Mittig_Feld = convertingClass.GetpmWertAsNumber(("QS1Mittig_Feld" + i).ToString());
+                this.QS1Mittig_Feld.Add(qS1Mittig_Feld);
+                var qS1Pos_Feld = convertingClass.GetpmWertAsNumber(("QS1Pos_Feld" + i).ToString());
+                this.QS1Pos_Feld.Add(qS1Pos_Feld);
+                var qS1Typ_Feld = convertingClass.GetpmWertAsNumber(("QS1Typ_Feld" + i).ToString());
+                this.QS1Typ_Feld.Add(qS1Typ_Feld);
+                var qS2Typ_Feld = convertingClass.GetpmWertAsNumber(("QS2Typ_Feld" + i).ToString());
+                this.QS2Typ_Feld.Add(qS2Typ_Feld);
+                var qS2Pos_Feld = convertingClass.GetpmWertAsNumber(("QS2Pos_Feld" + i).ToString());
+                this.QS2Pos_Feld.Add(qS2Pos_Feld);
+            }
+        }
+
+        /// <summary>
+        /// QS1Typ_Feld list
+        /// </summary>
+        public List<double> QS2Pos_Feld { get; set; }
+
+        /// <summary>
+        /// QS1Typ_Feld list
+        /// </summary>
+        public List<double> QS2Typ_Feld { get; set; }
+
+        /// <summary>
+        /// QS1Typ_Feld list
+        /// </summary>
+        public List<double> QS1Typ_Feld { get; set; }
+
+        /// <summary>
+        /// QS1Pos_Feld list
+        /// </summary>
+        public List<double> QS1Pos_Feld { get; set; }
+
+        /// <summary>
+        /// QS1Mittig_Feld list
+        /// </summary>
+        public List<double> QS1Mittig_Feld { get; set; }
+
+        /// <summary>
+        /// QS2_Feld List 
+        /// </summary>
+        public List<double> QS2_Feld { get; set; }
+
+        /// <summary>
+        /// QS2_Feld List
+        /// </summary>
+        public List<Double> QS1_Feld { get; set; }
+
+        /// <summary>
+        /// LaengeDT1 Pm
+        /// </summary>
+        public double LaengeDT1 { get; set; }
+
+        /// <summary>
+        /// Pm DRNeu number Value
+        /// </summary>
+        public double DRNeu { get; set; }
+
+        /// <summary>
+        /// Pm QuerSprosseEing number Value
+        /// </summary>
+        public double QuerSprosseEing { get; set; }
+
+        /// <summary>
+        /// static calculation
+        /// </summary>
+        public double A_rad { get; set; }
+
+        /// <summary>
+        /// PM Breite Number Value
+        /// </summary>
+        public int AnzDachFelder { get; set; }
+
+        /// <summary>
+        /// PM Breite Number Value
+        /// </summary>
+        public double Tiefe { get; set; }
+
+        /// <summary>
+        /// PM Breite Number Value
+        /// </summary>
+        public double Breite { get; set; }
+
+        /// <summary>
+        /// PM AchsmassSum Number Value
+        /// </summary>
+        public double AchsmassSum { get; set; }
+
+        /// <summary>
+        /// Pm AuswahlQS Number Value
+        /// </summary>
+        public double AuswahlQS { get; set; }
+    }
+}
