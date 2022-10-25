@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using PcfOOP;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable
+{
+    /// <summary>
+    /// Inserts Glass to Sql date Base table  BelegePosPMGlas
+    /// </summary>
+    public static class GlassInsertClass
+    {
+        /// <summary>
+        /// insert informati into  BelegePosPMGlas
+        /// </summary>
+        /// <param name="belegeNr">belegeNr for Sql Seacrh </param>
+        /// <param name="posNr">posNr that must be chaged </param>
+        /// <param name="amount">Sql iput amount </param>
+        /// <param name="glastyp">Sql iput glastyp </param>
+        /// <param name="form"> Sql iput Form </param>
+        /// <param name="breite">Sql iput breite </param>
+        /// <param name="heigth1">Sqliput heigth1 </param>
+        /// <param name="height2">Sql iput height2</param>
+        /// <param name="besonderheit"> Feature input paramet</param>
+        /// <param name="druckenAB">paramet input</param>
+        /// <param name="druckenPA">iput paramet</param>
+        public static void InsertGlasToBelegePosPMGlas(int belegeNr, short posNr, double amount, string glastyp, string form, double breite, double heigth1, double height2, string besonderheit, double druckenAB, double druckenPA)
+        {
+            try
+            {
+                string answer = string.Empty;
+                using (var con = new SqlConnection(Config.ConnString))
+                {
+                    con.Open();
+                    var query = @"Insert  into tbVKBelegePosPMGlas(BelegNr,PosNr,Anzahl,Glastyp,Form,Breite,Hoehe1,Hoehe2,Besonderheit,DruckenAB,DruckenPA)
+                              values(@belegeNr,@posNr,@Anzahl,@Glastyp,@Form,@breite,@heigth1,@heigth2,@Besonderheit,@DruckenAB,@DruckenAP)";
+                    using (var com = new SqlCommand(query, con))
+                    {
+                        com.Parameters.Add(new SqlParameter("@belegeNr", belegeNr));
+                        com.Parameters.Add(new SqlParameter("@posNr", posNr));
+                        com.Parameters.Add(new SqlParameter("@Anzahl", amount));
+                        com.Parameters.Add(new SqlParameter("@Glastyp", glastyp));
+                        com.Parameters.Add(new SqlParameter("@Form", form));
+                        com.Parameters.Add(new SqlParameter("@breite", breite));
+                        com.Parameters.Add(new SqlParameter("@heigth1", heigth1));
+                        com.Parameters.Add(new SqlParameter("@heigth2", height2));
+                        com.Parameters.Add(new SqlParameter("@Besonderheit", besonderheit));
+                        com.Parameters.Add(new SqlParameter("@DruckenAB", druckenAB));
+                        com.Parameters.Add(new SqlParameter("@DruckenAP", druckenPA));
+                        var rowadd = com.ExecuteNonQuery();
+                        if (rowadd > 0)
+                        {
+                            answer = "Saved";
+                        }
+                        else
+                        {
+                            answer = "not saved";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                var message = ex.Message;
+                throw;
+            }
+        }
+    }
+}
