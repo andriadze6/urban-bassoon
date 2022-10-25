@@ -1,0 +1,68 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql
+{
+    /// <summary>
+    /// PmTrasferFromSqlcs
+    /// </summary>
+    public class PmTrasferFromSqlcs
+    {
+        /// <summary>
+        /// Data list 
+        /// </summary>
+        private List<BelegPositionsAttribut> datalist;
+
+        /// <summary>
+        /// constructor for class
+        /// </summary>
+        /// <param name="belegNr">order number</param>
+        /// <param name="posNr">position number</param>
+        public PmTrasferFromSqlcs(int belegNr, short posNr)
+        {
+            using (var con = new ProconContext())
+            {
+                this.datalist = con.BelegPositionsAttribute.Where(x => x.BelegId == belegNr && x.Bestellposition == posNr).ToList();
+            }
+        }
+
+        /// <summary>
+        /// Return Pm Value as Double number
+        /// </summary>
+        /// <param name="attributName"> attributName input value</param>
+        /// <returns> double value of pm value </returns>
+        public double GetpmWertAsNumber(string attributName)
+        {
+            var pmwertStr = this.datalist.Where(x => x.AttributName == attributName).Select(y => y.AttributWert).SingleOrDefault();
+            var pmwertAsNumber = Convert.ToDouble(pmwertStr ?? "0");
+            return pmwertAsNumber;
+        }
+
+        /// <summary>
+        /// Return Pm Value as string number
+        /// </summary>
+        /// <param name="attributName"> attributName input value</param>
+        /// <returns> returns string pm value</returns>
+        public string GetpmWertAsString(string attributName)
+        {
+            var pmwert = this.datalist.Where(x => x.AttributName == attributName).Select(y => y.AttributWert).SingleOrDefault();
+            return pmwert;
+        }
+
+        /// <summary>
+        /// Return PmWertBezeichnung
+        /// </summary>
+        /// <param name="attributName"> attributName input value</param>
+        /// <returns> returns PmWertBezeichnung value</returns>
+        public string GetPmWertBezeichnung(string attributName)
+        {
+            var pmBezeichnung = this.datalist.Where(x => x.AttributName == attributName).Select(y => y.PmWertBezeichnung).SingleOrDefault();
+            return pmBezeichnung;
+        }
+    }
+}
