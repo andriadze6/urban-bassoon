@@ -1,0 +1,153 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
+using WeinorAppServer.Core.Contracts;
+using WeinorAppServer.Core.Tools;
+using WeinorAppServer.PCF.Contracts.IBugsFromFolder;
+
+namespace WeinorAppServer.PCF.Services.BugsFromFolder
+{
+    /// <summary>
+    /// machine data software sometimes crashes, so that the automation won’t work So this class will check if there are  some old files for machine and sends mail to Daniel Schedel
+    /// </summary>
+    public class CheckFileStatus : BusinessServiceBase, ICheckFileStatus 
+    {
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path1 = @"\\nts-camquix\Eingang\Procon\elumatec_628_1\camQuix_auto_1";
+
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path2 = @"\\nts-camquix\Eingang\Procon\elumatec_628_2\camQuix_auto_2";
+
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path3 = @"\\nts-camquix\Eingang\Procon\satellite_xt_weinor";
+
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path4 = @"\\nts-camquix\Eingang\Procon\satellite_xt_hoefer";
+
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path5 = @"\\nts-camquix\Ausgang\elumatec_628_1\NCW_camQuix";
+
+        /// <summary>
+        /// Folder Path
+        /// </summary>
+        private const string Path6 = @"\\nts-camquix\Ausgang\elumatec_628_2\NCW_camQuix";
+
+        /// <summary>
+        /// Array of All passes 
+        /// </summary>
+        private string[] pathArray = { Path1, Path2, Path3, Path4, Path5, Path6 };
+
+        /// <summary>
+        /// Value Of CorrentDate
+        /// </summary>
+        private DateTime dateNow;
+
+        /// <summary>
+        /// Valeu of corent Day
+        /// </summary>
+        private int hour;
+
+        /// <summary>
+        /// Array of all file's patch in corrent Folder
+        /// </summary>
+        private List<string> file;
+
+        /// <summary>
+        /// Folder Path as string for Email
+        /// </summary>
+        private string textPath;
+
+
+        /// <summary>
+        /// Main function Which will check if folders
+        /// </summary>
+        public void CheckFolders()
+        {
+            this.dateNow = DateTime.Now;
+            this.hour = this.dateNow.Hour;
+            foreach (var item in this.pathArray)
+            {
+                this.file = Directory.GetFiles(item).ToList();
+                this.textPath = item;
+                this.CheckFile();
+            }
+        }
+
+        /// <summary>
+        /// Checks If there are correct doc Type Files in the folder and if there are nor older than 1 hour(extra check for day if some one dont take care about it)
+        /// </summary>
+        private void CheckFile()
+        {
+            try
+            {
+                var count = 0;
+                foreach (var doc in this.file)
+                {
+                    var index = doc.LastIndexOf(".");
+                    var docType = doc.Substring(index);
+                    if (docType == ".csv" || docType == ".ncw")
+                    {
+                        var creationTime = File.GetCreationTime(doc);
+                        var createHour = creationTime.Hour;
+                        var diffHour = Math.Abs(this.hour - createHour);
+                        if (diffHour > 1)
+                        {
+                            count++;  //// Its means there are Files which has a problem
+                        }
+                    }
+                }
+                if (count > 0)
+                {
+                    var text = "Please Check Folder : " + this.textPath + " there ara " + count + " old files ";
+                    this.Email(text);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// This function Send text to User
+        /// </summary>
+        /// <param name="text">Text  which must be send to User</param>
+        private void Email(string text)
+        {
+            try
+            {
+                var email1 = "ikrepper@weinor.de";
+                var email2 = "plychtva@weinor.de";
+                var email3 = "jbungarz@weinor.de";
+                var email4 = "dschedel@weinor.de";
+                var mailProxy = ServiceFactory<IMailService>.CreateProxy();
+                var message = new MailMessage();
+                message.From = new MailAddress(Konstanten.EmailAbsenderStandard);
+                message.To.Add(new MailAddress(email1));
+                message.To.Add(new MailAddress(email2));
+                message.To.Add(new MailAddress(email3));
+                message.To.Add(new MailAddress(email4));
+                message.Subject = string.Format(text);
+                mailProxy.Send(message);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    }
+}
