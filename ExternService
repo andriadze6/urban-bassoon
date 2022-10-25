@@ -1,0 +1,99 @@
+/// <summary>
+        /// Galss delete 
+        /// </summary>
+        /// <param name="belegNr">input value for belegNr</param>
+        /// <param name="posNr">input value for posNr</param>
+        /// <returns>return true if Galss Delete</returns>
+        public AppResponse<Boolean> DeleteBelegePosPMGlas(int belegNr, short posNr)
+        {
+            try
+            {
+                using (var conection = new SqlConnection(Config.ConnString))
+                {
+                    conection.Open();
+
+                    var query = @"delete from tbVKBelegePosPMGlas where BelegNr=@belegerNr and PosNr=@posNr";
+                    var com = new SqlCommand(query, conection);
+                    com.Parameters.Add(new SqlParameter("@belegerNr", belegNr));
+                    com.Parameters.Add(new SqlParameter("@posNr", posNr));
+                    var rowdeleted = com.ExecuteNonQuery();
+                    if (rowdeleted > 0)
+                    {
+                        return AppServerHelper.AppResponse(true, "Glasmaße erfolgreich gelöscht");
+                    }
+                    else
+                    {
+                        return AppServerHelper.AppResponse(false, "Keine Glasmaße zum Löschen vorhanden!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(false, ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
+        
+        /// <summary>
+        /// Check If produckt number is match and checks tbVKBelegePosPMGlas to make sure that entries are not doubled 
+        /// </summary>
+        /// <param name="belegNr">input value for belegNr</param>
+        /// <param name="posNr">input value for posNr</param>
+        /// <returns>bool statemant</returns>
+        public AppResponse<bool> CheckProduckT(int belegNr, short posNr)
+        {
+            var glassCheck = this.CheckstbVKBelegePosPMGlas(belegNr, posNr);
+            if (glassCheck)
+            {
+                try
+                {
+                    using (var conection = new SqlConnection(Config.ConnString))
+                    {
+                        conection.Open();
+                        var query = @"select top 1 ProduktNr
+                                    from tbVKBelegePosPM where BelegNr=@belegerNr and PosNr=@posNr ";
+                        var com = new SqlCommand(query, conection);
+                        com.Parameters.Add(new SqlParameter("@belegerNr", belegNr));
+                        com.Parameters.Add(new SqlParameter("@posNr", posNr));
+                        var produckNr = com.ExecuteScalar().ToString();
+                        bool transferData = false;
+                        if (produckNr == "2831" || produckNr == "2832" || produckNr == "2833" || produckNr == "2837" || produckNr == "2846" || produckNr == "2864")
+                        {
+                            var classForCalcuculation = new GlassCalculationUBE(belegNr, posNr);
+                            transferData = classForCalcuculation.CalculateGlassSizeUBE(produckNr);
+                            var save = this.SpeichernAktionHistorie("WebExtension", "Glasmasse nachberechnen", belegNr.ToString(), posNr.ToString());
+                            return AppServerHelper.AppResponse(transferData, "Glasmaße erfolgreich berechnet");
+                        }
+                        if (produckNr == "2829" || produckNr == "2836")
+                        {
+                            var classForCalcuculation = new GlassCalculationUBE(belegNr, posNr);
+                            classForCalcuculation.CalculateGlassSizeW50c();
+                            var save = this.SpeichernAktionHistorie("WebExtension", "Glasmasse nachberechnen", belegNr.ToString(), posNr.ToString());
+                            return AppServerHelper.AppResponse(true, "Glasmaße erfolgreich berechnet");
+                        }
+                        if (produckNr == "2709")
+                        {
+                            var classForCalcuculation = new TerrazzaOriginalMain(belegNr, posNr);
+                            classForCalcuculation.GetGlasmasseQENeuTest();
+                            var answer = this.SpeichernAktionHistorie("WebExtension", "Glasmasse nachberechnen", belegNr.ToString(), posNr.ToString());
+                            return AppServerHelper.AppResponse(true, "Glasmaße erfolgreich berechnet");
+                        }
+                        if (produckNr == "2740")
+                        {
+                            var classForCalcuculation = new TerrazzaPureGlassCalculation(belegNr, posNr);
+                            classForCalcuculation.SetGlasmasseTerrazzaPure();
+                            var answer = this.SpeichernAktionHistorie("WebExtension", "Glasmasse nachberechnen", belegNr.ToString(), posNr.ToString());
+                            return AppServerHelper.AppResponse(true, "Glasmaße erfolgreich berechnet");
+                        }
+                        return AppServerHelper.AppResponse(false, "Für das Produkt in dieser Auftragsposition ist noch keine Nachberechnung der Glasmaße möglich");                      
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return AppServerHelper.AppResponse(false, ex.Message, AppResponse.MessageTypeEnum.ERROR);
+                }
+            }
+            else
+            {
+                return AppServerHelper.AppResponse(false, "Glasmaße bereits vorhanden, bitte erst löschen");
+            }            
+        }
