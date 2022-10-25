@@ -1,0 +1,19 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Core.Contracts;
+
+namespace WeinorAppServer.PCF.Contracts.IBugsFromFolder
+{
+    /// <summary>
+    /// Interface For Class
+    /// </summary> 
+    public interface ICheckFileStatus
+    {
+        /// <summary>
+        /// Checks if in folder is odler Folders
+        /// </summary>
+        void CheckFolders();
+    }
+}
