@@ -1,0 +1,91 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using WeinorWeb.Classes;
+using System.Web.Helpers;
+using WeinorWeb.Models.StueliKabel;
+using WeinorAppServer.Model.Entities.ArtikelStueli;
+
+namespace WeinorWeb.Controllers
+{
+    public class StueliKabelController : Controller
+    {
+        //
+        // GET: /StueliKabel/
+
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public ActionResult GetStueliKabelPrimary()
+        {
+            var helper = new Helper();
+            var kabels = helper.proxy.GetStueliKabelPrimary();
+            return Json(kabels, JsonRequestBehavior.AllowGet);
+        }
+
+        public ActionResult GetStueliKabelSecondary(int primaryId)
+        {
+            var helper = new Helper();
+            var model = new List<StueliKabelSecondary>();
+            var kabels = helper.proxy.GetStueliKabelSecondary(primaryId);
+
+            foreach (var kabel in kabels.Value)
+            {
+                model.Add(new StueliKabelSecondary(kabel));
+            }
+
+            return Json(model, JsonRequestBehavior.AllowGet);
+        }
+
+        public ActionResult GetStueliKabelTotals(int secondaryId)
+        {
+            var helper = new Helper();
+            var model = new List<StueliKabelTotal>();
+            var kabels = helper.proxy.GetStueliKabelTotal(secondaryId);
+
+            foreach (var kabel in kabels.Value)
+            {
+                model.Add(new StueliKabelTotal(kabel));
+            }
+
+            return Json(model, JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public ActionResult DeleteKabelTotals(int id)
+        {
+            var helper = new Helper();
+
+            var res = helper.proxy.DeletePcfStueliKabelTotal(id);
+
+            return Json(res.Value);
+        }
+
+        [HttpPost]
+        public ActionResult SaveKabelTotals(StueliKabelTotal input)
+        {
+            var helper = new Helper();
+
+            var kabel = new PcfStueliKabelTotal()
+            {
+                Id = input.Id,
+                SecondaryPartId = input.SecondaryPartId,
+                ArtikelNr = input.ArtikelNr,
+                Bezeichnung = input.Bezeichnung,
+                Anzahl = input.Anzahl,
+                Bemerkungen = input.Bemerkungen,
+                Direction = input.Direction,
+                Verwendungszweck = input.Verwendungszweck,
+                Sortierung = input.Sortierung
+            };
+
+            helper.proxy.SaveStueliKabelTotal(kabel);
+
+            return Json(true);
+        }
+    }
+}
