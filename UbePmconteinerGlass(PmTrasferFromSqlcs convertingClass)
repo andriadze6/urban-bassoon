@@ -1,0 +1,112 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassUBE
+{
+    /// <summary>
+    /// Pm class for UbE
+    /// </summary>
+    public class UbePmconteinerGlass
+    {
+        /// <summary>
+        /// Make Pm conteiner For UBE
+        /// </summary>
+        /// <param name="convertingClass">ConvertingClass used to convert sql data</param>
+        public UbePmconteinerGlass(PmTrasferFromSqlcs convertingClass)
+        {
+            this.PosSprosse = new List<double>();
+            this.FrameBreite = convertingClass.GetpmWertAsNumber("Breite");
+            this.Seite = convertingClass.GetpmWertAsString("Einbauseite");
+            this.Teilung = Convert.ToInt32(convertingClass.GetpmWertAsNumber("Teilung"));
+            this.SpaltmassVorn = convertingClass.GetpmWertAsNumber("SpaltmassVorn");
+            this.HQuerriegelstr = convertingClass.GetpmWertAsString("105") ?? "0";
+            this.Trapez = convertingClass.GetpmWertAsNumber("Trapez");
+            this.EindeckungTyp = convertingClass.GetPmWertBezeichnung("Vorrichtung");
+            this.Tiefe = convertingClass.GetpmWertAsNumber("Tiefe");
+            this.TiefeL = convertingClass.GetpmWertAsNumber("TiefeL");
+            this.TiefeR = convertingClass.GetpmWertAsNumber("TiefeR");
+            this.Rahmen = Convert.ToInt16(convertingClass.GetpmWertAsNumber("Rahmen"));
+            for (int i = 0; i <= this.Teilung - 2; i++)
+            {
+                string attributName = ("SprossePos" + (i + 1)).ToString();
+                double sprossePos = convertingClass.GetpmWertAsNumber(attributName);
+                this.PosSprosse.Add(sprossePos);
+            }
+        }
+
+        /// <summary>
+        /// List for Sprosse postions
+        /// </summary>
+        public List<double> PosSprosse { get; set; }
+
+        /// <summary>
+        /// Pm Breite frame
+        /// </summary>
+        public double FrameBreite { get; set; }
+
+        /// <summary>
+        /// Pm Einbauseite
+        /// </summary>
+        public string Seite { get; set; }
+
+
+        /// <summary>
+        /// Pm Teilung
+        /// </summary>
+        public int Teilung { get; set; }
+
+
+        /// <summary>
+        /// Pm SpaltmassVorn
+        /// </summary>
+        public double SpaltmassVorn { get; set; }
+
+    
+
+        /// <summary>
+        /// Pm 105
+        /// </summary>
+        public string HQuerriegelstr { get; set; }
+
+
+        /// <summary>
+        /// Pm Trapez
+        /// </summary>
+        public double Trapez { get; set; }
+
+
+        /// <summary>
+        /// Pm Vorrichtung
+        /// </summary>
+        public string EindeckungTyp { get; set; }
+
+
+        /// <summary>
+        /// Pm Tiefe
+        /// </summary>
+        public double Tiefe { get; set; }
+
+
+        /// <summary>
+        /// PM TiefeL
+        /// </summary>
+        public double TiefeL { get; set; }
+
+
+        /// <summary>
+        /// pm TiefeR
+        /// </summary>
+        public double TiefeR { get; set; }
+
+
+        /// <summary>
+        /// Pm Rahmen
+        /// </summary>
+        public int Rahmen { get; set; }
+    }
+}
