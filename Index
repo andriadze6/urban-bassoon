@@ -1,0 +1,512 @@
+
+@{
+    ViewBag.Title = "Glasmaße löschen/ergänzen";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Auswertung Wareneingang</h1>
+
+<style>
+    .containerDiv {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: self-end;
+        background-color: #dbe0ea;
+        padding: 3%;
+        width: auto;
+    }
+
+    .labelClass {
+        font-weight: bold;
+    }
+
+    .myBtn {
+        width: 32%;
+        padding: 8px;
+        background-color: #e3000f;
+        color: #ffffff;
+        border: 1px solid transparent;
+        font-weight: bold;
+        margin-bottom: 10px;
+        margin-top: 25px;
+    }
+
+    #tableG, #TotalAmount {
+        background-color: #e3000f;
+        border: solid 2px #e3000f;
+        color: #ffffff;
+        margin: 5px;
+        text-align: center;
+        font-size: large;
+        height:30px;
+    }
+
+    #export1 {
+        width: 50%;
+        margin-left: 25%;
+        border: 2px solid #001E36;
+        border-radius: 10px;
+        background-color: #e3000f;
+        text-align: center;
+        font-size: large;
+        color: #ffffff;
+        align-content: center;
+    }
+
+    .labelClass1 {
+        font: bold;
+        font-weight: 100;
+        color: white;
+        font-stretch: expanded;
+        padding: 8px;
+        text-align: center;
+        font-size: large;
+    }
+
+    .headerClass {
+        background-color: #99acbb;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+
+    table {
+        border: 1px solid #D6EEEE;
+        border-collapse: separate;
+        border-spacing: 0px;
+        width: 100%;
+    }
+
+    th {
+        position: static;
+        top: 0px;
+        align-content:center
+    }
+
+    .table-wrapper {
+        display: none;
+        max-height: 450px;
+        overflow-y: scroll;
+    }
+
+    th, td {
+        border: 1px solid #D6EEEE;
+        padding: 5px;
+        width: 8%;
+    }
+
+    .outer-wrapper {
+        display: none;
+        border: 1px solid #D6EEEE;
+        box-shadow: 0px 0px 3px black;
+        margin: 0px;
+        border-radius: 3px;
+    }
+
+    tr:hover {
+        background-color: #D6EEEE;
+    }
+
+
+    .myclass input {
+        float: left;
+    }
+
+    .success {
+        background-color: green;
+    }
+    /* Green */
+    .danger {
+        background-color: #e3000f;
+    }
+    /* Red */
+
+    #startDate, #endDate, #IName{
+        border: 2px solid #001E36;
+        margin: 5px;
+        color: #001E36;
+        text-align: center;
+    }
+    .dropdown-check-list {
+        display: inline-block;
+    }
+
+    .dropdown-check-list .anchor {
+        position: relative;
+        cursor: pointer;
+        display: inline-block;
+        padding: 5px 50px 5px 10px;
+        border: 1px solid #ccc;
+        margin: 5px;
+        border: 2px solid #001E36;
+    }
+
+    .dropdown-check-list .anchor:after {
+        position: absolute;
+        content: "";
+        border-left: 2px solid black;
+        border-top: 2px solid black;
+        padding: 5px;
+        right: 10px;
+        top: 20%;
+        -moz-transform: rotate(-135deg);
+        -ms-transform: rotate(-135deg);
+        -o-transform: rotate(-135deg);
+        -webkit-transform: rotate(-135deg);
+        transform: rotate(-135deg);
+    }
+
+    .dropdown-check-list .anchor:active:after {
+        right: 8px;
+        top: 21%;
+    }
+
+    .dropdown-check-list ul.items {
+        padding: 2px;
+        display: none;
+        margin: 0;
+        border: 1px solid #ccc;
+        border-top: none;
+        text-align:left;
+    }
+
+    .dropdown-check-list ul.items li {
+        list-style: none;
+        text-align:left;
+    }
+
+    .dropdown-check-list.visible .anchor {
+        color: #0094ff;
+    }
+
+    .dropdown-check-list.visible .items {
+        display: block;
+    }
+</style>
+<div>
+    <div>
+        <div style="display:flex; text-align : left">
+            <input placeholder="StartDate" class="textbox-n" type="text" onfocus="(this.type='date')" id="startDate" data-date-format="Start Date" value="">
+            <input placeholder="EndDate" class="textbox-n" type="text" onfocus="(this.type='date')" value="" id="endDate">
+            <div id="list1" class="dropdown-check-list" tabindex="100">
+                <span class="anchor" id="StatusSpan">Select Status</span>
+                <ul class="items" id="status">
+                    <li><input id="StatusCheckbox" type="checkbox" name="type" value="0" />offen</li>
+                    <li><input id="StatusCheckbox" type="checkbox" name="type" value="1" />Abgeschlossen</li>
+                    <li><input id="StatusCheckbox" type="checkbox" name="type" value="2" />Wartet auf we </li>
+                </ul>
+            </div>
+            <div id="list2" class="dropdown-check-list" tabindex="100">
+                <input class="anchor" id="INameSpan" placeholder="Search IName"/>
+                <ul class="items" id="IName" style="height : 100px; overflow-y: scroll">
+                </ul>
+            </div>
+            <button id="TotalAmount" type="button">Total Amount</button>
+            <button id="tableG" type="button">Table</button>
+        </div>
+        <div>
+            <label class="error-hint warningMessage" style="display: none">Endforlich</label>
+        </div>
+    </div>
+    <div class="labelClass1 danger" id="TimeIsempty" style="display:none">
+        <span>Please Select All Necessary Field</span>
+    </div>
+    <div class="labelClass1 danger" id="NotInRange" style="display:none">
+        <span>In is Time of range there is no order with this status </span>
+    </div>
+    <div class="labelClass1 success" id="amount" style="display:none">
+    </div>
+    <div class="outer-wrapper">
+        <div class="table-wrapper">
+            <table id="AllResults">
+                <thead style="background-color: #F5F5F5">
+                    <tr><th style="position:static" colspan="9">   <input id="export1" type="button" value="Export Table"></th></tr>
+                    <tr id="tablehed">
+                        <th>WENr</th>
+                        <th>KundenNr</th>
+                        <th>BelegNr </th>
+                        <th>PosNr</th>
+                        <th>ReklNummer</th>
+                        <th>WEMassnahme</th>
+                        <th>WEDatum </th>
+                        <th>Beschreibung</th>
+                        <th>lName</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody" class="bodyhover"></tbody>
+            </table>
+        </div>
+        <div class="labelClass1 success" id="TotalAmountOffRow" style="display:none">
+        </div>
+    </div>
+
+</div>
+<link href="@Url.Content("~/Content/bootstrap/css/WeinorDesign.css")" rel="stylesheet" type="text/css" />
+<script src="@Url.Content("~/Scripts/xlsx.full.min.js")" type="text/javascript"></script>
+<script src="@Url.Content("~/Scripts/FileSaver.js")" type="text/javascript"></script>
+<script>
+
+    /// global veriables
+    let arrayStatus = [];
+    let arrayIName = [];
+    const obj = {};
+    $(document).ready(function () {
+        window.onload = function () {
+            $.ajax({
+                url: '@Url.Action("GetIName", "AuswertungWareneingang")',
+                success: function (result) {
+                    let html = '';
+                    const test = result;
+                    for (const item of result.Value) {
+                        const test2 = item;
+                        html += `<li><input id="INameCheckbox" type="checkbox" name = "type" value="${item}" />${item}</li>`;
+                    }
+                    $('#IName').append(html);
+                    const currentDate = new Date();
+                    let dd = currentDate.getDate();
+                    let mm = currentDate.getMonth() + 1;
+                    let yyyy = currentDate.getFullYear();
+                    if (dd < 10) {
+                        dd = '0' + dd;
+                    }
+
+                    if (mm < 10) {
+                        mm = '0' + mm;
+                    }
+                    const minYear = Number(yyyy) - 1;
+                    const maxValue = yyyy + '-' + mm + '-' + dd;
+                    const minValue = minYear + '-' + mm + '-' + dd;
+                    document.getElementById("startDate").setAttribute("min", minValue);
+                    document.getElementById("startDate").setAttribute("value", minValue);
+                    document.getElementById("endDate").setAttribute("value", maxValue);
+                    document.getElementById("endDate").setAttribute("max", maxValue);
+                    ///Make Status checkbox visuable
+                    $("#INameSpan").on("input", function () {
+                        visableinput('IName')
+                    });
+
+                    ///Make Status checkbox visuable
+                    $("#INameSpan").on("click", function () {
+                        visableinput('IName')
+                    });
+
+                    ///Make Status checkbox visuable
+                    $("#StatusSpan").click(function () {
+                        visableinput('status');
+                    });
+
+                }
+            })
+        }
+    })
+
+
+    const visableinput = function(id) {
+        let visCon = $(`#${id}`).is(":visible");
+        if (visCon) {
+            $(`#${id}`).hide();
+        }
+        else {
+            $(`#${id}`).show();
+        }
+    }
+
+    $("#INameSpan").on("input", function () {
+        const currentInput = $(this).val().toLowerCase().trim();
+        let iNameValue = document.querySelectorAll("#IName > li");
+        iNameValue.forEach((function (element) {
+            const test = element.childNodes[1].data.trim().toLowerCase();
+            element.style.display = test.includes(currentInput) ? "block" : "none";
+        }))
+    })
+
+
+
+    // Saves Status check Box  values as array
+    function GetStatusCheckBoxArray() {
+        $("#StatusCheckbox:checked").each(function () {
+            arrayStatus.push($(this).val());
+        })
+        obj.StatusArray = arrayStatus;
+    }
+
+    // Saves Iname check Box  values as array
+    function GetINameCheckBoxArray() {
+        $("#INameCheckbox:checked").each(function () {
+            arrayIName.push($(this).val());
+        })
+        obj.INameArray = arrayIName;
+    }
+
+    //Convert  Time For BackEnd
+    const conDateType = function (startime, endTime) {
+        const time = {
+            StartTimeNew: '',
+            EndTimeNew: ''
+        }
+        const splitStartTime = startime.split('-');
+        const [yearStart, monthStart, dayStart] = [...splitStartTime]
+        time.StartTimeNew = `${yearStart}-${dayStart}-${monthStart}`;
+        const splitEndTime = endTime.split('-');
+        const [yearEnd, monthEnd, dayEnd] = [...splitEndTime];
+        time.EndTimeNew = `${yearEnd}-${dayEnd}-${monthEnd}`;
+        return time;
+    }
+
+    const table = document.querySelector('#tableG');
+    const startDate = document.querySelector('#startDate');
+    const endDate = document.querySelector('#endDate');
+    const totalAmount = document.querySelector('#TotalAmount');
+    totalAmount.addEventListener('click', function () {
+        const time = conDateType(startDate.value, endDate.value)
+        $('#TimeIsempty').hide();
+        $('#NotInRange').hide();
+        $(".outer-wrapper").hide();
+        $('#amount').find("span").remove();
+        $.ajax({
+            url: '@Url.Action("Totalamount", "AuswertungWareneingang")',
+            data:{},
+            success: function (results) {
+                const [offenAmount, wartetAmount] = [...results.Value];
+                var html = `<span>Total amount of offen are ${offenAmount} and Wartet are ${wartetAmount} </span>`
+                $('#amount').append(html);
+                $('#amount').show();
+                $('#TotalAmount').show();
+            }
+        })
+    })
+
+    // After importing Table unchecking all values
+    function Uncheck() {
+        $('input[type=checkbox]').each(function (index, checkbox) {
+            checkbox.checked = false;
+        })
+        arrayStatus = [];
+        arrayIName = [];
+    }
+
+
+    //Table generation
+    table.addEventListener('click', function () {
+        $("#IName").hide();
+        $("#status").hide();
+        GetINameCheckBoxArray();
+        GetStatusCheckBoxArray();
+        const statusLenght = arrayStatus.length
+        const iNameLenght = arrayIName.length
+        if (!startDate.value || !endDate.value || statusLenght === 0 || iNameLenght === 0) {
+            $('#TimeIsempty').show();
+            $('#NotInRange').hide();
+            $(".outer-wrapper").hide();
+            $('#amount').hide();
+        }
+        else {
+            const time = conDateType(startDate.value, endDate.value)
+            obj.startTime = time.StartTimeNew;
+            obj.endTime = time.EndTimeNew;
+            $('#IName').hide();
+            $('#amount').hide();
+            $('#TimeIsempty').hide();
+            $('#NotInRange').hide();
+            $(".outer-wrapper").hide();
+            $('#IName').show();
+            $("#StatusIsempty").hide();
+            const iName = arrayIName.toString();
+            const status = arrayStatus.toString();
+            let test2;
+            $.ajax({
+                url: '@Url.Action("GenerationTable", "AuswertungWareneingang")',
+                dataType: "json",
+                type: "POST",
+                data: JSON.stringify(obj),
+                contentType: "application/json",
+                success: function (results) {
+                    var reLenght = results.Value.length;
+                    if (reLenght === 0) {
+                        $('#DivSelectStatus').hide();
+                        $('#NotInRange').show();
+                        $('#TotalAmount').show();
+                        Uncheck();
+                    }
+                    else {
+                        var datahtml = '';
+                        for (var row = 0; row < reLenght; row++) {
+                            datahtml += "<tr>";
+                            for (const [key, vel] of Object.entries(results.Value[row])) {
+                                datahtml += "<td>" + vel + "</td>";
+                            }
+                            datahtml += "</tr>";
+                        }
+                        const html2 = `<span>Total Amount of Row Equal ${reLenght} <span>`
+                        Uncheck();
+                        $(".items").hide();
+                        $("#AllResults").find("tbody").empty();
+                        $("#dataTableBody").append(datahtml);
+                        $(".outer-wrapper").show();
+                        $(".table-wrapper").show();
+                        $("#dataTableBody").show();
+                        $('#generationTable').show();
+                        $('#TotalAmount').show();
+                        $("#TotalAmountOffRow").empty()
+                        $("#TotalAmountOffRow").append(html2)
+                        $("#TotalAmountOffRow").show()
+                    }
+                }
+            })
+
+        }
+
+    })
+
+    //export Results to Excel
+    var getExcelReport = function (tableId) {
+        var workBook = XLSX.utils.book_new();
+        workBook.Props = {
+            Title: tableId,
+            Subject: tableId,
+            Author: "Reget",
+            CreatedDate: new Date()
+        };
+        workBook.SheetNames.push("test");
+        //creating document data
+        var ws_data = [];
+        var extraIndex = 0;
+        function s2ab(s) {
+            var buf = new ArrayBuffer(s.length); //convert s to arrayBuffer
+            var view = new Uint8Array(buf);  //create uint8array as viewer
+            for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF; //convert to octet
+            return buf;
+        }
+
+        ws_data[0] = [];
+        ws_data[1] = [];
+        var extraIndex = 0;
+        $.each($(tableId + 'tr '), function (index, value) {
+            ws_data[extraIndex].push($(value).text().trim());
+        });
+        extraIndex = 0;
+        $.each($(tableId + ' tr'), function (index, value) {
+            extraIndex += 1;
+            ws_data[(extraIndex + 1)] = [];
+            $.each($(value).children(), function (index1, value1) {
+                var lokdt = $(value1).text().trim();
+                if (lokdt.includes(",")) {
+                    lokdt = lokdt.replace(",", ".");
+                }
+                var lokdata = $.isNumeric(lokdt) ? parseFloat(lokdt) : lokdt;
+                ws_data[(extraIndex + 1)].push(lokdata);
+            });
+        });
+        var ws = XLSX.utils.aoa_to_sheet(ws_data);
+        workBook.Sheets["test"] = ws;
+        var wbout = XLSX.write(workBook, { bookType: 'xlsx', type: 'binary' });
+        var temp = s2ab(wbout);
+        saveAs(new Blob([temp], { type: "application/octet-stream" }), tableId + '.xlsx');
+        //}
+    }
+
+    $("#export1").click(function () {
+        getExcelReport('#AllResults');
+    });
+</script>
