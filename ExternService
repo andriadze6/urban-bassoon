@@ -1,0 +1,154 @@
+/// <summary>
+        /// exports information about W17 glass number and wings
+        /// </summary>
+        /// <param name="belegNr">Order Number</param>
+        /// <param name="posNr">postion number</param>
+        /// <returns>list of Glass information</returns>
+        public AppResponse<List<string>>TrasferW17GlasInfo(int belegNr, short posNr)
+        {
+            try
+            {
+                using (var conection = new SqlConnection(Config.ConnString))
+                {
+                    conection.Open();
+                    var query = @"select top 1 ProduktNr
+                                from tbVKBelegePosPM where BelegNr=@belegerNr and PosNr=@posNr ";
+                    using (var com = new SqlCommand(query, conection))
+                    {
+                        com.Parameters.Add(new SqlParameter("@belegerNr", belegNr));
+                        com.Parameters.Add(new SqlParameter("@posNr", posNr));
+                        var produckNr = com.ExecuteScalar().ToString();
+                        if (produckNr == "2851")
+                        {
+                            var transferdata = this.W17GlassInformation(belegNr, posNr);
+                            return AppServerHelper.AppResponse(transferdata);
+                        }
+                        else
+                        {
+                            return AppServerHelper.AppResponse(new List<string>(), "this produckt is not w-17");
+                        }
+                    }
+                }   
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(new List<string>(), ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
+        
+        
+        /// <summary>
+        /// Inprot information Glass and wing numbers for W17
+        /// </summary>
+        /// <param name="belegNr">order number</param>
+        /// <param name="posNr">Postion Number</param>
+        /// <returns>retunr list of information wich conteins  PMLabel PMWertBezeichnung PMWert</returns>
+        private List<string> W17GlassInformation(int belegNr, short posNr)
+        {
+            var tableToTransfer = new List<string>();
+            using (var connection = new SqlConnection(Config.ConnString))
+            {
+                connection.Open();
+                var query = @"select PM4.ProduktNr, PM4.PMLabel, PM4.PMWertBezeichnung, PM4.PMWert, PM2.PMWert,PM3.PMWert as AnzahlFlugel,PM1.PMWert as Breite from tbVKBelegePosPM as PM1
+                            join tbVKBelegePosPM as PM2 on PM2.BelegNr = PM1.BelegNr and PM2.PosNr = PM1.PosNr and PM2.PMName = 'AnzGleise'
+                            join tbVKBelegePosPM as PM3 on PM3.BelegNr = PM1.BelegNr and PM3.PosNr = PM1.PosNr and PM3.PMName = 'AnzahlFluegelGesamt'
+                            join tbVKBelegePosPM as PM4 on PM4.BelegNr = PM1.BelegNr and PM4.PosNr = PM1.PosNr and PM4.PMName = 'AnzahlGleisigUndFlugel'
+                            where PM1.BelegNr = @BelegNr and PM1.PosNr = @PosNr and PM1.PMName = 'Breite'";
+                using (var command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.Add(new SqlParameter("@BelegNr", belegNr));
+                    command.Parameters.Add(new SqlParameter("@PosNr", posNr));
+                    var table = command.ExecuteReader();
+                    var fieldNumber = table.FieldCount;
+                    while (table.Read())
+                    {
+                        for (int i = 1; i < fieldNumber; i++)
+                        {
+                            var listMember = table[i].ToString();
+                            tableToTransfer.Add(listMember);
+                        }
+                    }
+                    connection.Close();
+                }
+                return tableToTransfer;
+            }       
+        }
+ 
+ /// <summary>
+        /// calcutae w17 wing size
+        /// </summary>
+        /// <param name="belegeNr">order Number</param>
+        /// <param name="posNr">Pos Number</param>
+        /// <param name="wingsNumber">wings Number</param>
+        /// <returns>bool Value</returns>
+        public AppResponse<bool> W17glassculculate(int belegeNr, short posNr, int wingsNumber)
+        {
+            try
+            {
+                this.DeleteBelegePosPMGlas(belegeNr, posNr);
+                var con = new W17GlassCalculation(belegeNr, posNr, wingsNumber);
+                var returnVelue = con.SetGlasmasseW17U100();
+                return AppServerHelper.AppResponse(returnVelue);
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(false, ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
+        
+        /// <summary>
+        /// Galss delete 
+        /// </summary>
+        /// <param name="belegNr">input value for belegNr</param>
+        /// <param name="posNr">input value for posNr</param>
+        /// <returns>return true if Galss Delete</returns>
+        public AppResponse<Boolean> DeleteBelegePosPMGlas(int belegNr, short posNr)
+        {
+            try
+            {
+                using (var conection = new SqlConnection(Config.ConnString))
+                {
+                    conection.Open();
+
+                    var query = @"delete from tbVKBelegePosPMGlas where BelegNr=@belegerNr and PosNr=@posNr";
+                    var com = new SqlCommand(query, conection);
+                    com.Parameters.Add(new SqlParameter("@belegerNr", belegNr));
+                    com.Parameters.Add(new SqlParameter("@posNr", posNr));
+                    var rowdeleted = com.ExecuteNonQuery();
+                    if (rowdeleted > 0)
+                    {
+                        return AppServerHelper.AppResponse(true, "Glasmaße erfolgreich gelöscht");
+                    }
+                    else
+                    {
+                        return AppServerHelper.AppResponse(false, "Keine Glasmaße zum Löschen vorhanden!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(false, ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
+        
+        /// <summary>
+        /// Save  new  PM AnzahlFluegelGesamt and  PM AnzGleise values
+        /// </summary>
+        /// <param name="orderNumber">order number</param>
+        /// <param name="posNumber">postion number</param>
+        /// <param name="anzahlFlugel"> windg number</param>
+        /// <param name="anzahlGleise"> glass number</param>
+        /// <returns>returns bool value</returns>
+        public AppResponse<bool>SavePmValue(int orderNumber, short posNumber, string anzahlFlugel, string anzahlGleise)
+        {
+            try
+            {
+                var dataTrasfer = this.SavePmValueToVkbelegePm(orderNumber, posNumber, anzahlFlugel, anzahlGleise);
+                return AppServerHelper.AppResponse(dataTrasfer);
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(false, ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
+        
