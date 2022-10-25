@@ -1,0 +1,46 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using WeinorWeb.Classes;
+using WeinorAppServer.Model.Entities.Verkauf;
+
+
+namespace WeinorWeb.Controllers
+{
+    public class GlassDeletController : Controller
+    {
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public JsonResult DeleteGlass(int belegNr, int posNr)
+        { 
+            var helper = new Helper();
+            try
+            {
+                var delete = helper.proxy.DeleteBelegePosPMGlas(belegNr, (short)posNr);
+                if (delete.Value)
+                {
+                    var AktionHistorie = helper.proxy.SpeichernAktionHistorie("WebExtension", "Glasmasse löschen", belegNr.ToString(), posNr.ToString());
+                }
+                return Json(delete, JsonRequestBehavior.AllowGet);
+
+            }
+            catch (Exception ex)
+            {
+                return Json(ex, JsonRequestBehavior.AllowGet);
+            }
+        }
+        public JsonResult Glassadd(int belegeNr, int posNr)
+        {
+            var helper = new Helper();
+            //checks tbVKBelegePosPMGlas to make sure that entries are not doubled
+            var data = helper.proxy.CheckProduckT(belegeNr, (short)posNr);
+            return Json(data, JsonRequestBehavior.AllowGet);
+        }
+
+    }
+}
