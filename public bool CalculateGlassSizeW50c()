@@ -1,0 +1,309 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassTerrazza;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassUBE;
+using WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation
+{
+    /// <summary>
+    /// Glass Calcuation
+    /// </summary>
+    public class GlassCalculationUBE
+    {
+        /// <summary>
+        /// Data list 
+        /// </summary>
+        private PmTrasferFromSqlcs dataWorker;
+
+        /// <summary>
+        /// UbePmconteiner Glass
+        /// </summary>
+        private UbePmconteinerGlass ubePmClass;
+
+        /// <summary>
+        /// list hoeheGLinks was create to make CalculateGlassSizeW50c Compacter
+        /// </summary>
+        private List<double> hoeheGLinks = new List<double>();
+
+        /// <summary>
+        /// list hoeheGRechts was create to make CalculateGlassSizeW50c Compacter
+        /// </summary>
+        private List<double> hoeheGRechts = new List<double>();
+
+        /// <summary>
+        /// list hoeheGlasGross was create to make CalculateGlassSizeW50c Compacter
+        /// </summary>
+        private List<double> hoeheGlasGross = new List<double>();
+
+        /// <summary>
+        /// list hoeheGlasKlein  was create to make CalculateGlassSizeW50c Compacter
+        /// </summary>
+        private List<double> hoeheGlasKlein = new List<double>();
+
+        /// <summary>
+        /// create Data list forom Sql
+        /// </summary>
+        /// <param name="belegeNr"> belegeNr input</param>
+        /// <param name="posNr">posNr input</param>
+        public GlassCalculationUBE(int belegeNr, short posNr)
+        {
+            this.dataWorker = new PmTrasferFromSqlcs(belegeNr, posNr);
+            this.ubePmClass = new UbePmconteinerGlass(this.dataWorker);
+            this.BelegeNr = belegeNr;
+            this.PosNr = posNr;
+        }
+
+        /// <summary>
+        /// Order Number
+        /// </summary>
+        private int BelegeNr { get; set; }
+
+        /// <summary>
+        /// Postion Number
+        /// </summary>
+        private short PosNr { get; set; }
+
+        /// <summary>
+        /// calculates Glass size for artikle  2831, 2832, 2833, 2837, 2846,2864  and pass to webex and saves it to SetUndCheckGlasMasseUBEQE_1
+        /// </summary>
+        /// <param name="produckNr">input value produckNr</param>
+        /// <returns>returns bool on defend was succses</returns>
+        public bool CalculateGlassSizeUBE(string produckNr)
+        {
+            var answer = false;
+            if (this.ubePmClass.FrameBreite == 0)
+            {
+                return true;
+            }
+            if (this.ubePmClass.Teilung == 0)
+            {
+                return true;
+            }
+            double hQuerriegel;
+            double breite = this.ubePmClass.FrameBreite - this.ubePmClass.SpaltmassVorn;
+            if (produckNr == "2846")
+            {
+                hQuerriegel = 60;
+            }
+            else
+            {
+                hQuerriegel = Convert.ToDouble(this.ubePmClass.HQuerriegelstr);
+            }
+            double breiteG = EvalLib2.Conv.sRound((breite - (this.ubePmClass.Teilung * 6)) / this.ubePmClass.Teilung, 0, 0);
+            if (this.ubePmClass.Trapez == 0)
+            {
+                double tiefeG = this.ubePmClass.Tiefe - 40 - hQuerriegel;
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.ubePmClass.EindeckungTyp, "Rechteck", breiteG, tiefeG, tiefeG, string.Empty, 2, 0);
+                answer = true;
+            }
+            if (this.ubePmClass.Trapez == 1)
+            {
+                double[] tiefeG1 = new double[this.ubePmClass.Teilung + 1];
+                double[] tiefeG2 = new double[this.ubePmClass.Teilung + 1];
+                double diff1 = 0;
+                double diff2 = 0;
+                diff1 = this.ubePmClass.TiefeL - this.ubePmClass.TiefeR;
+                if (diff1 < 0)
+                {
+                    diff1 = -diff1;
+                }
+                if (this.ubePmClass.TiefeL < this.ubePmClass.TiefeR)
+                {
+                    diff2 = this.ubePmClass.TiefeL;
+                }
+                else
+                {
+                    diff2 = this.ubePmClass.TiefeR;
+                }
+                double alpha = Math.Acos(diff1 / breite);
+                for (int i = 1; i <= this.ubePmClass.Teilung; i++)
+                {
+                    tiefeG1[i] = Conv.sRound(((breite - 3 - ((6 + breiteG) * (i - 1))) * Math.Cos(alpha)) + diff2 - 39.1 - hQuerriegel, 0, 0);
+                    tiefeG2[i] = Conv.sRound((((breite - 3) * Math.Cos(alpha)) - (breiteG * i * Math.Cos(alpha)) - (6 * (i - 1) * Math.Cos(alpha))) + diff2 - 39.1 - hQuerriegel, 0, 0);
+                }
+                this.GlassUBEInsert(breiteG, tiefeG1, tiefeG2);
+            }
+            return answer;
+        }
+
+
+        /// <summary>
+        /// calculates Glass size for artikle 2829,2836  and pass to webex and saves it to SetUndCheckGlasMasseUBEQE_1
+        /// </summary>
+        /// <returns>bool value </returns>
+        public bool CalculateGlassSizeW50c()
+        {
+            bool answer = false;
+            double abzugGlasAussen;
+            double abzugGlasSprosse;
+            string form;
+            double alpha = 0;
+            if (this.ubePmClass.Trapez == 1)
+            {
+                alpha = Math.Abs(Math.Atan((this.ubePmClass.TiefeL - this.ubePmClass.TiefeR) / this.ubePmClass.FrameBreite) * 180 / Math.PI);
+            }
+            var tanAlpha = Math.Tan(alpha * Math.PI / 180);
+            var cosAlpha = Math.Cos(alpha * Math.PI / 180);
+            if (this.ubePmClass.Rahmen == 59)
+            {
+                abzugGlasAussen = FW50c.AbzugAussenGlasB59;
+                abzugGlasSprosse = FW50c.AbzugSprosseGlasS81;
+            }
+            else
+            {
+                abzugGlasAussen = FW50c.AbzugAussenGlasB78;
+                abzugGlasSprosse = FW50c.AbzugSprosseGlasS100;
+            }
+            var breiteG = this.BreiteW50c(this.ubePmClass.Teilung, this.ubePmClass.FrameBreite, abzugGlasAussen, abzugGlasSprosse);
+            form = this.HoeheGLassW50c(breiteG, abzugGlasAussen, abzugGlasSprosse, tanAlpha, cosAlpha);
+            this.GlassInsertW50c(breiteG, form);
+            return answer;
+        }
+
+        /// <summary>
+        /// This Function is used to calcute Glass hoehe for W50c
+        /// </summary>
+        /// <param name="breiteG">breiteG Input </param>
+        /// <param name="abzugGlasAussen">abzugGlasAussen Input</param>
+        /// <param name="abzugGlasSprosse">abzugGlasSprosse Input</param>
+        /// <param name="tanAlpha">tanAlpha Input</param>
+        /// <param name="cosAlpha">cosAlpha Input</param>
+        /// <returns>String glass from for inserting it  in Sql Data Base</returns>
+        private string HoeheGLassW50c(double[] breiteG, double abzugGlasAussen, double abzugGlasSprosse, double tanAlpha, double cosAlpha)
+        {
+            string form;
+            if (this.ubePmClass.Trapez == 0)
+            {
+                form = "Rechteck";
+                double hoeheG = Math.Truncate(this.ubePmClass.Tiefe - (abzugGlasAussen * 2));
+                for (int i = 0; i <= this.ubePmClass.Teilung - 1; i++)
+                {
+                    this.hoeheGlasGross.Add(hoeheG);
+                    this.hoeheGlasKlein.Add(hoeheG);    
+                }
+            }
+            else
+            {
+                if (this.ubePmClass.Seite == "l")
+                {
+                    form = "Trapez links";
+                    var firstGrossGlass = (this.ubePmClass.TiefeL - abzugGlasAussen) - (tanAlpha * abzugGlasAussen) - (abzugGlasAussen / cosAlpha);
+                    this.hoeheGlasGross.Add(firstGrossGlass);
+                }
+                else
+                {
+                    form = "Trapez rechts";
+                    var firstGrossGlass = (this.ubePmClass.TiefeR - abzugGlasAussen) - (tanAlpha * abzugGlasAussen) - (abzugGlasAussen / cosAlpha);
+                    this.hoeheGlasGross.Add(firstGrossGlass); 
+                }
+                var firstKleinGlass = this.hoeheGlasGross[0] - (tanAlpha * breiteG[0]);
+                this.hoeheGlasKlein.Add(firstKleinGlass);
+                for (int i = 1; i < this.ubePmClass.Teilung; i++)
+                {
+                    var glasGross = this.hoeheGlasKlein[i - 1] - (tanAlpha * abzugGlasSprosse * 2);
+                    this.hoeheGlasGross.Add(glasGross);
+                    var glasKlein = this.hoeheGlasGross[i] - (tanAlpha * breiteG[i]);
+                    this.hoeheGlasKlein.Add(glasKlein);
+                }
+            }
+            return form;
+        }
+
+        /// <summary>
+        /// calculate glass width for 2829 and 2836
+        /// </summary>
+        /// <param name="teilung">division of UBE</param>
+        /// <param name="breite">width Of UBE</param>
+        /// <param name="abzugGlasAussen">abzugGlasAussen Of UBE</param>
+        /// <param name="abzugGlasSprosse">abzugGlasSprosse Of UBE</param>
+        /// <returns>Returns double Values of Glass sizes </returns>
+        private double[] BreiteW50c(int teilung, double breite, double abzugGlasAussen, double abzugGlasSprosse)
+        {
+            double[] breiteG;
+            breiteG = new double[teilung];
+            switch (teilung)
+            {
+                case 1:
+                    {
+                        breiteG[0] = Math.Truncate(breite - abzugGlasAussen - abzugGlasAussen);
+                        break;
+                    }
+                case 2:
+                    {
+                        breiteG[0] = Math.Truncate(this.ubePmClass.PosSprosse[0] - abzugGlasAussen - abzugGlasSprosse);
+                        breiteG[1] = Math.Truncate(breite - this.ubePmClass.PosSprosse[0] - abzugGlasAussen - abzugGlasSprosse);
+                        break;
+                    }
+                default:
+                    {
+                        breiteG[0] = Math.Truncate(this.ubePmClass.PosSprosse[0] - abzugGlasAussen - abzugGlasSprosse);
+                        for (int i = 1; i < teilung - 1; i++)
+                        {
+                            breiteG[i] = Math.Truncate(this.ubePmClass.PosSprosse[i] - this.ubePmClass.PosSprosse[i - 1] - abzugGlasSprosse - abzugGlasSprosse);
+                        }
+                        breiteG[teilung - 1] = Math.Truncate(breite - this.ubePmClass.PosSprosse[teilung - 2] - abzugGlasAussen - abzugGlasSprosse);
+                        break;
+                    }
+            }
+            return breiteG;
+        }
+
+        /// <summary>
+        /// pass Glass Size to  InsertGlasToBelegePosPMGlas
+        /// </summary>
+        /// <param name="breiteG"> Glass Weidth Arry</param>
+        /// <param name="tiefeG1">Glass height1 Arry</param>
+        /// <param name="tiefeG2">Glass height2 Arry</param>
+        private void GlassUBEInsert(double breiteG, double[] tiefeG1, double[] tiefeG2)
+        {
+            if (this.ubePmClass.Seite == "l")
+            {
+                for (int i = 1; i <= this.ubePmClass.Teilung; i++)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.ubePmClass.EindeckungTyp, "Trapez links", breiteG, tiefeG1[i], tiefeG2[i], string.Empty, 2, 0);
+                }
+            }
+            else
+            {
+                for (int i = this.ubePmClass.Teilung; i >= 1; i--)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.ubePmClass.EindeckungTyp, "Trapez rechts", breiteG, tiefeG2[i], tiefeG1[i], string.Empty, 2, 0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// pass Glass Size to  InsertGlasToBelegePosPMGlas
+        /// </summary>
+        /// <param name="breiteG">Glass width array</param>
+        /// /// <param name="form">Glass Form</param>
+        private void GlassInsertW50c(double[] breiteG, string form)
+        {
+            if (this.ubePmClass.Seite == "l")
+            {
+                for (int i = 0; i < this.ubePmClass.Teilung; i++)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.ubePmClass.EindeckungTyp, form, Math.Truncate(breiteG[i]), Math.Truncate(this.hoeheGlasGross[i]), Math.Truncate(this.hoeheGlasKlein[i]), string.Empty, 2, 0);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < this.ubePmClass.Teilung; i++)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.ubePmClass.EindeckungTyp, form, Math.Truncate(breiteG[i]), Math.Truncate(this.hoeheGlasKlein[i]), Math.Truncate(this.hoeheGlasGross[i]), string.Empty, 2, 0);
+                }
+            }
+        }
+    }
+}
