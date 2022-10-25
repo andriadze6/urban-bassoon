@@ -1,0 +1,463 @@
+<style>
+    #Terrazza {
+        display: flex;
+        margin-top: 1rem;
+        margin-left: -20%;
+    }
+
+    .containerDiv {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: self-end;
+        background-color: #dbe0ea;
+        padding: 3%;
+    }
+
+    .labelClass {
+        font-weight: bold;
+    }
+
+    #BelegNr
+    {
+        width: 50%;
+        padding: 9px;
+        border: 2px solid #001E36;
+        margin: 5px;
+        height: auto;
+        color: #001E36;
+        text-align: center;
+    }
+
+    #Search
+    {
+        padding: 8px;
+        background-color: #e3000f;
+        border: solid 2px #e3000f;
+        color: #ffffff;
+        width: 30%;
+        margin: 5px;
+        text-align: center;
+        font-size: large;
+    }
+
+    .labelClass1 {
+        font: bold;
+        font-weight: 100;
+        color: white;
+        font-stretch: expanded;
+        padding: 8px;
+        text-align: center;
+        font-size: large;
+    }
+
+    .success {
+        background-color: green;
+    }
+
+    /* Green */
+    .danger {
+        background-color: #e3000f;
+    }
+
+    /* Red */
+</style>
+
+<div id="search-bar">
+    <div class="containerDiv">
+            <input id="BelegNr" type="text" placeholder="Produktionsauftragsnummer">
+        <button id="Search" type="button">Search</button>
+        <!-- <button id="AddGlass" type="button">Ergänzen</button> -->
+    </div>
+    <div class="labelClass1 success" id="succsed" style="display:none">
+        <span></span>
+    </div>
+    <div class="labelClass1 danger" id="fale" style="display:none">
+        <span></span>
+    </div>
+</div>
+<body>
+    <div id="scroll">
+    <canvas id="Terrazza">
+        THIS IS FALLBACK MESSAGE FOR OLD BROWSERS
+        YOUR BROWSER IS NOT SUPPORTING CANVAS
+    </canvas>
+    </div>
+</body>
+<body>
+    <script>
+    const canvs = document.getElementById('Terrazza');
+    const context = canvs.getContext("2d");
+    const search = document.querySelector('#Search');
+    const canvas = document.querySelector("#Terrazza");
+    const resize = () => {
+    canvas.width = window.innerWidth * 2 ;
+    canvas.height = 300;
+    }
+
+    search.addEventListener('click', function () {
+        const produktionsauftragsnummer = document.getElementById('BelegNr').value;
+        const splitProduck = produktionsauftragsnummer.split('-');
+        const [belgNr, posNr] = [...splitProduck]
+        if (belgNr && posNr ) {
+            $("#fale").hide();
+            $.ajax({
+                url: '@Url.Action("InformationForDrawing", "Terrazza2dDrawing")',
+                data: { belegNr: Number(belgNr), posNr: Number(posNr) },
+                success: function (results) {
+                    let AnzahlMitteRGB = 0; 
+                    let AnzDachFelderSum = 0;
+                    let Netzseite; 
+                    let PosNetzteil2 = 0; 
+                    let PfostenRGB = 0;
+                    let QS1 = [];
+                    let solt = [];
+                    const result1Length = results.Value.length;
+                    if (result1Length === 0) {
+                        $('#fale').find('span').text('Die eingegebene Auftragsnummer hat keine Verkabelung. Bilderzeugung wird abgebrochen')
+                        $('#fale').show();
+                    }
+                    else {
+                        for (const item of results.Value) {
+                            switch (item.PMName) {
+                                case 'AnzahlMitteRGB':
+                                    AnzahlMitteRGB = Number(item.PMWert);
+                                    break;
+                                case 'AnzDachFelderSum':
+                                    AnzDachFelderSum = Number(item.PMWert);
+                                    break;
+                                case 'NetzSeite':
+                                    Netzseite = item.PMWert;
+                                    break;
+                                case 'PosNetzteil2':
+                                    PosNetzteil2 = Number(item.PMWert);
+                                    break;
+                                case 'PfostenRGB':
+                                    PfostenRGB = Number(item.PMWert);
+                                    break;
+                                default:
+                                    const condition = item.PMName.includes('QS1Typ_Feld')
+                                    const condtion2 = item.PMName.includes('SlotMitteRGB')
+                                    if (condition) {
+                                        const feld = item.PMName.slice(-1);
+                                        const feidleNumber = feld === '0' ? 10 : Number(feld);
+                                        QS1.push(feidleNumber);
+                                    }
+
+                                    else if (condtion2) {
+                                        const feld = item.PMName.slice(-1);
+                                        const feidleNumber = feld === '0' ? 10 : Number(feld);
+                                        solt.push(feidleNumber);
+                                    }
+                                    break;
+                            }
+                        }
+                        RenderDrawing(AnzDachFelderSum, Netzseite, AnzahlMitteRGB, PosNetzteil2, PfostenRGB, QS1, solt);
+                    }
+                }
+            })
+        }
+        else {
+            $('#fale').find('span').text('Bitte füllen Sie alle Felder aus');
+            $("#fale").show();
+        }
+    })
+        function RenderDrawing(felidAmount, Netzseite, AnzahlMitteRGB, PosNetzteil2, PfostenRGB, QS1 = [], Solt = []) {
+        resize();
+            resize();
+            //global variables
+            let width = window.innerWidth * 2;
+            const feildLength = width / (felidAmount + 1);  // distance between  First rack and  began of second rack
+            const rack = feildLength / 6  // size of rack for drawings
+            const dis1 = Netzseite === 'r' ? 0 : rack;// diastanc between 0,0 cordinat and terrazza
+            const squareWidth = (feildLength - rack - 20) / 5 // 30 label squares width
+            const dis2 = 10 // distance beteewn rack and  square 30 or 60
+            const dis3 = (feildLength - rack - 20) - squareWidth   //distanc between two square30' or 60s starting points
+            const imageWidth = (dis3 - squareWidth) / 2;
+            let cordinadeX1; // X cordinate - starting point of squer1 (30 or 60)
+            let cordinadeX2; // X cordinate -staring point of squer2 (30 or 60)
+            let cordImage;  // Image Drawing star cordinate for  PfostenRGBDraw and SquareDraws
+            let cordinadeZx1;
+            let cordinadeZx2;
+            const MitteRGBPostion = Netzseite === 'l' ? 1 : felidAmount - 2;
+            const Netzteil2RGBPostion = Netzseite === 'l' ? PosNetzteil2 - 1 : felidAmount - PosNetzteil2;
+            const PfostenRGBPostion = Netzseite === 'l' ? 3 - 1 : felidAmount - 3;
+            const qS1Length = QS1.length;
+            /////////////////////////
+            //Drawings terrazza 2D                       
+            for (let x = 0; x < felidAmount; x++) {
+                MainBody(x, Solt, Netzteil2RGBPostion);
+                cordinadeX1 = dis2 + dis1 + rack + x * feildLength // X cordinate of starting point of squer1
+                cordinadeX2 = cordinadeX1 + dis3; // X cordinate - staring point of squer2 (30 or 60)
+                const cordianteX3 = cordinadeX1 + squareWidth; // X cordinate - End point of squer1 (30 or 60)
+                const dis4 = cordinadeX2 - cordianteX3; // Distance between Squer (30 or 60)
+                cordImage = cordianteX3 + dis4 / 4; // Image Drawing star cordinate for  PfostenRGBDraw and SquareDraws
+                cordinadeZx1 = cordinadeX1 + squareWidth + 10;
+                cordinadeZx2 = cordinadeX2 - 10;
+                if ((AnzahlMitteRGB !== 0 && MitteRGBPostion === x) || (PosNetzteil2 !== 0 && Netzteil2RGBPostion === x)) {
+                    const text = "30"
+                    SquareDraws(x, text, 1)
+                    const textX = Netzseite === 'l' ? 10 + dis1 + rack + (x) * feildLength : (x + 1) * feildLength - 10 
+                    const align = Netzseite === 'l' ? 'left' : 'end';
+                    textDraws("E", textX, 230, rack, align)
+                }
+                else if (PfostenRGB !== 0 && PfostenRGBPostion === x) {
+                        if (qS1Length != 0) {
+                            ZonderPfostenRGBDraw();
+                        }
+                        else {
+                            PfostenRGBDraw(x)
+                        }
+                }
+                else {
+                        const text = "60"
+                        SquareDraws(x, text, 0);
+                        if (qS1Length != 0) {
+                            for (const [i, elemnt] of QS1.entries()) {
+                                if (x + 1 === elemnt) {
+                                    ZonderSquerDraw();
+                                }
+                            }
+                        }
+                     }   
+            }
+
+            // drawing main body 
+            function MainBody(x, SoltRGB = [], Netzteil2RGBPostion) {
+                ///variables
+                const xCD = dis1 + rack / 2 + x* feildLength /// X cordiante for Label RGBW  DTS and DT
+                const countTextCordinat = (feildLength + 2 * dis1 + rack ) / 2 + feildLength * x;
+                let textForRect = "black";
+                const soltRGBLenght = SoltRGB.length;
+                const text = x === 0 ? "DTS" : 'DT';
+                const coun = Netzseite === 'l' ? x + 1 : felidAmount - x;
+                const countText = (qS1Length != 0 && PfostenRGB !== 0 && PfostenRGBPostion === x) ? `${coun}` + ' - Fallrohr': coun
+                ///////
+                if (Netzseite === 'l' && x === 0) {
+                    //drawTriangular( arrow Box)
+                    const cordianrX = 2 * rack / 3
+                    drawTriangularR([cordianrX, 10], [rack, 15], [cordianrX, 20], [cordianrX, 15], [rack / 2, 15], [rack / 3, 30], [0, 10])
+                    RectDraws(0, 0, rack, 30, textForRect, [15, 3, 3, 3])
+                    const zugX = 5 + dis1 + rack + x * feildLength ///X cordiante For Label Zug
+                    textDraws("Zug", zugX, 230, rack, 'left');
+                    const eX = dis1 + feildLength - 5; /// X cordinate For label E
+                    textDraws("E", eX, 230, rack, 'end')
+                }
+                textDraws(text, xCD, 15, rack, "center");
+                textDraws(countText, countTextCordinat, 15, 80);
+                Linedraws([dis1 + x * feildLength, 0], [dis1 + rack + x * feildLength, 0]); // pirveli xazi
+                Linedraws([dis1 + x * feildLength, 0], [dis1 + x * feildLength, 30]); // pirveli qveda xazi
+                RectDraws(dis1 + rack + x * feildLength, 0, feildLength - rack, 30, textForRect);
+                Linedraws([dis1 + x * feildLength, 200], [dis1 + feildLength + x * feildLength, 200], [15, 3, 3, 3])
+                Linedraws([dis1 + rack + x * feildLength, 230], [(dis1 + feildLength) + x * feildLength, 230],)
+                RectDraws(dis1 + x * feildLength, 30, rack, 200, textForRect, [15, 3, 3, 3]);                   
+                if (soltRGBLenght != 0) {
+                    SoltRGB.forEach(function (currentValue) {
+                        if (currentValue === x) {                               
+                            textDraws("RGBW", xCD, 120, rack, "center");
+                        }
+                        if (currentValue === Netzteil2RGBPostion && Netzteil2RGBPostion === x) {
+                            const redlineXL = dis1 + rack + x * feildLength; //  X cordinate of radliine If Netzseite = l
+                            const redlineXR =  (x+1) * feildLength; // X cordinate of radliine If Netzseite = r
+                            const redLineXCordiante = Netzseite === 'l' ? redlineXL : redlineXR;
+                            Linedraws([redLineXCordiante, 0], [redLineXCordiante, 400], undefined, 'red', 10);
+                        }
+                    });
+                }                    
+                if (qS1Length != 0 && PfostenRGB !== 0 && PfostenRGBPostion === x) {
+                    const eXLl = 5 + dis1 + rack + (x) * feildLength;
+                    const eXLr = (x + 1) * feildLength - 5 + dis1;
+                    textDraws("E", eXLl, 230, rack);
+                    const eX = 5 + dis1 + rack + (x) * feildLength; /// X cordinate For label E
+                    textDraws("E", eXLr, 230, rack,'end')                    
+                }
+                if (x === felidAmount - 1) {
+                    x++;
+                    const xC1 = dis1 + rack / 2 + x * feildLength                        
+                    RectDraws(dis1 + x * feildLength, 30, rack, 200, textForRect,[15, 3, 3, 3]);
+                    Linedraws([dis1 + x * feildLength, 0], [dis1 + rack + x * feildLength, 0]);
+                    Linedraws([dis1 + rack + x * feildLength, 0], [dis1 + rack + x * feildLength, 30]);
+                    Linedraws([dis1 + x * feildLength, 200], [dis1 + rack + x * feildLength, 200], [15, 3, 3, 3])
+                    textDraws('DTS', xC1, 15, rack, "center");
+                    if (Netzseite === 'r') {
+                        RectDraws(dis1 + rack + x * feildLength, 0, rack, 30, textForRect,[15, 3, 3, 3])
+                        const zugX = x * feildLength - 5; ///X cordiante For Label Zug
+                        textDraws("Zug", zugX, 230, rack, "end");
+                        const eX = 5 + dis1 + rack + (x - 1) * feildLength; /// X cordinate For label E
+                        textDraws("E", eX, 230, rack)
+                        const cordianrX = 1 * rack / 3
+                        const dis = dis1 + rack + x * feildLength;
+                        drawTriangularR([cordianrX + dis, 10], [dis, 15], [cordianrX + dis, 20], [cordianrX + dis, 15], [dis + rack / 2, 15], [dis + 2 * rack / 3, 30], [dis + rack, 10])
+                    }
+                }
+                
+            }
+
+            function PfostenRGBDraw() {
+                const cordianteForSquer = Netzseite === 'l' ? cordinadeX2 : cordinadeX1
+                Rect3060Draws(cordianteForSquer, 45, squareWidth, 150, '#ffe359');
+                drawImage1(cordImage, 45, imageWidth, 90, 60)
+                textDraws("60", (cordianteForSquer + squareWidth / 2), 120, rack, "center")
+            }
+
+            function ZonderPfostenRGBDraw() {
+                const cordianteForSquer60 = Netzseite === 'l' ? cordinadeX2 : cordinadeX1;
+                const cordianteForSquer30 = Netzseite === 'l' ? cordinadeX2 - squareWidth / 2 - 10 : cordinadeX1 + 10 + squareWidth
+                Rect3060Draws(cordianteForSquer60, 45, squareWidth, 150, '#ffe359'); ///draws 60
+                Rect3060Draws(cordianteForSquer30, 45, squareWidth / 2, 150, '#00c900');
+                const cordianteForImage = Netzseite === 'l' ? cordinadeX1 : cordinadeX1 + 10 + squareWidth + squareWidth / 2;
+                drawImage1(cordianteForImage, 45, imageWidth, 90, 60)
+                textDraws("60", (cordianteForSquer60 + squareWidth / 2), 120, rack, "center")
+                textDraws("30", (cordianteForSquer30 + squareWidth / 4), 120, rack, "center")
+            }
+
+            /// This function draws  MitteRGB, Netzteil2RGB and Squres with 60 Labels
+            function SquareDraws(x, text, imagStatus, zonder = 0) {
+                const color = text === '60' ? '#ffe359' : '#00c900';
+                Rect3060Draws(cordinadeX1, 45, squareWidth, 150, color); // firts square with 30 label
+                if (imagStatus === 1) {  //// If imagSatus === 1 it will draw iamge
+                    drawImage1(cordImage, 45, imageWidth, 90);
+                }
+                Rect3060Draws(cordinadeX2, 45, squareWidth, 150, color) // Second square with 30 label
+                const x1text = cordinadeX1 + squareWidth / 2
+                textDraws(text, x1text, 120, rack, "center")
+                textDraws(text, (cordinadeX2 + squareWidth / 2), 120, rack, "center")
+            }
+
+            function ZonderSquerDraw() {
+                const color1 = '#00c900';
+                Rect3060Draws(cordinadeZx1, 45, squareWidth / 2, 150, color1);
+                Rect3060Draws(cordinadeZx2, 45, -(squareWidth / 2), 150, color1)
+                const x1text = cordinadeZx1 + squareWidth / 4
+                const x2text = cordinadeZx2 - squareWidth / 4
+                textDraws("30", x1text, 120, squareWidth / 2, "center")
+                textDraws("30", x2text, 120, squareWidth / 2, "center")
+            }
+        }
+
+
+    function drawImage1(x, y, width, height = 90, imgsrc = 30) {
+        const img = new Image();
+        if (imgsrc === 30) {
+            img.src = '@Url.Action("netzteil DT.jpg", "Images")';
+        }
+        else {
+            img.src = '@Url.Action("netzteil Pfosten.jpg","Images")';
+        }
+        img.onload = function () {
+            context.drawImage(img, x, y, width, height)
+        }
+    }
+
+        //Drawing Lines parts
+        function Linedraws(x, y, desch = [], color = 'black', lineWidth = 2) {
+            context.beginPath();
+            const [xBegin, yBegin] = [...x];
+            const [xEnd, yEnd] = [...y];
+            context.strokeStyle = color;
+            context.lineWidth = lineWidth;
+            context.setLineDash(desch);
+            context.moveTo(xBegin, yBegin)
+            context.lineTo(xEnd, yEnd)
+            context.stroke();
+            context.closePath();
+        }
+
+        //Darawnin Squeare 30  and 60
+        function Rect3060Draws(x, y, w, h, color) {
+            context.beginPath();
+            context.strokeStyle = color;
+            context.fillStyle = color;
+            context.lineWidth = 10;
+            context.rect(x, y, w, h);
+            context.lineWidth = 2;
+            context.fill();
+            context.closePath();
+        }
+
+        //Drawing Rect Elemnts
+        function RectDraws(x, y, w, h, color,desch = []) {
+            context.beginPath();
+            context.strokeStyle = color;
+            context.lineWidth = 2;
+            context.setLineDash(desch);
+            context.rect(x, y, w, h)
+            context.closePath();
+            context.stroke();
+        }
+
+        //Drawing Text
+        function textDraws(text, x, y, w1, align = "left") {
+            context.fillStyle = 'black';
+            context.font = "20px normal bolder";
+            if (text === 'Zug' || text === 'E') {
+                context.save();
+                context.textBaseline = "bottom";
+                context.textAlign = align;
+                context.fillText(text, x, y, w1)
+                context.restore();
+            }
+            else if (text === "30" || text === "60" || text === "RGBW") {
+                context.textBaseline = "middle";
+                context.save()
+                context.translate(x, y);
+                context.rotate(-0.5 * Math.PI)
+                context.fillText(text, -30, 0, w1);
+                context.restore();
+            }
+            else {
+                context.save();
+                context.textBaseline = "middle";
+                context.textAlign = align;
+                context.fillText(text, x, y, w1)
+                context.restore();
+            }
+        }
+
+
+
+        // draw Triangular with point cordinates  
+        function drawTriangularR(a, b, c, d, e, f, g) {
+            context.beginPath();
+            context.strokeStyle = 'red'
+            context.fillStyle = 'red'
+            const [aX, aY] = [...a]
+            context.moveTo(aX, aY)  // a
+            const [bX, bY] = [...b]
+            context.lineTo(bX, bY) //b
+            const [cX, cY] = [...c]
+            context.lineTo(cX, cY) //c
+            context.lineTo(cX, aY) // aerTebs
+            context.fill();
+
+            /// drawing Lines
+            const [dX, dY] = [...d]
+            context.moveTo(dX, dY) // d
+
+            const [eX, eY] = [...e]
+            context.lineTo(eX, eY) //e
+
+            const [fX, fY] = [...f]
+            context.lineTo(fX, fY) //f
+
+            const [gX, gY] = [...g]
+            context.lineTo(gX, gY)//g
+
+            context.lineJoin = 'round'
+            context.stroke();
+            context.closePath();
+        }
+
+        //push on picture and scroll
+        $('#scroll').on('mousedown', function (e) {
+            $('#scroll').on('mousemove', function (evt) {
+                $('html,body').stop(false, true).animate({
+                    scrollLeft: e.pageX - evt.clientX
+                });
+            });
+        });
+        $('#scroll').on('mouseup', function () {
+            $('#scroll').off('mousemove');
+        });
+
+    </script>
+</body>
