@@ -1,0 +1,29 @@
+        /// <summary>
+        /// Takes Information from tbVKBelegePosPM for 2D Drawings
+        /// </summary>
+        /// <param name="belgNr">Search by belgNr </param>
+        /// <param name="posNr">Search by posNr</param>
+        /// <returns>return Pms </returns>
+        public AppResponse<List<Terrazza2Drawing>> DataFor2DTerrazza(int belgNr, short posNr)
+        {
+            try
+            {
+                using (var con = new ProconContext())
+                {
+                    var belegNr = belgNr;
+                    var posNumber = posNr;
+                    var query = @"select PMName,PMWert
+                                from tbVKBelegePosPM
+                                where BelegNr = @belegerNr and PosNr = @posNr and ProduktNr = '2740' and
+                                (PMName = 'AnzahlMitteRGB' or PMName = 'AnzDachFelderSum' or 
+                                PMName = 'Netzseite' or PMName = 'PosNetzteil2' or PMName = 'PfostenRGB' or (PMName like 'QS1Typ_Feld%' and PMWert = '2')
+                                or (PMName like 'SlotMitteRGB%' and PMWert = '1'))";
+                    var result = con.Database.SqlQuery<Terrazza2Drawing>(query.ToString(), new SqlParameter("@belegerNr", belegNr), new SqlParameter("@posNr", posNumber)).ToList();
+                    return AppServerHelper.AppResponse(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                return AppServerHelper.AppResponse(new List<Terrazza2Drawing>(), ex.Message, AppResponse.MessageTypeEnum.ERROR);
+            }
+        }
