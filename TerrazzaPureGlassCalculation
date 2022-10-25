@@ -1,0 +1,130 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using PcfOOP;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurePmconteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurevariableConteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.TerrazzaPureMethods;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.TerrazzPure
+{
+    /// <summary>
+    /// Class For Terrazza PureGlassCalculation
+    /// </summary>
+    public class TerrazzaPureGlassCalculation
+    {
+        /// <summary>
+        /// Variable Class
+        /// </summary>
+        private PureVariableConteiner variable; 
+
+        /// <summary>
+        /// Data list 
+        /// </summary>
+        private PmTrasferFromSqlcs dataWorker;
+
+        /// <summary>
+        /// Data list 
+        /// </summary>
+        private PureMethods methods;
+
+        /// <summary>
+        /// Feld amount
+        /// </summary>
+        private double anzahlDF;
+
+        /// <summary>
+        /// Order Number
+        /// </summary>
+        private int belegeNr;
+
+        /// <summary>
+        /// produck  postion 
+        /// </summary>
+        private short posNr;
+
+        /// <summary>
+        /// create Data list forom Sql
+        /// </summary>
+        /// <param name="belegeNr"> belegeNr input</param>
+        /// <param name="posNr">posNr input</param>
+        public TerrazzaPureGlassCalculation(int belegeNr, short posNr)
+        {
+            this.dataWorker = new PmTrasferFromSqlcs(belegeNr, posNr);
+            this.PureaPmClass = new PurePmConteinerClass(this.dataWorker);
+            this.variable = new PureVariableConteiner(this.PureaPmClass);
+            this.methods = new PureMethods(this.PureaPmClass, this.variable, belegeNr, posNr);
+            this.anzahlDF = this.PureaPmClass.AnzahlDT - 1;
+            this.belegeNr = belegeNr;
+            this.posNr = posNr;
+        }
+
+
+
+        /// <summary>
+        /// ConteinerClasscs
+        /// </summary>
+        private PurePmConteinerClass PureaPmClass { get; set; }
+
+        /// <summary>
+        /// Calaiting Glass sizes For Terrazza pure
+        /// </summary>
+        /// <returns> Reurn Bool value  </returns>
+        public bool SetGlasmasseTerrazzaPure()
+        {
+            switch (this.variable.Situation)
+            {
+                case "1":
+                    ////as usual, NO cross rung                   
+                    var glasLaenge = this.variable.Lgp;
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.anzahlDF, this.PureaPmClass.EindeckungTyp, "Rechteck", this.variable.GlasBreite, Conv.sRound(glasLaenge, 0, 1), Conv.sRound(glasLaenge, 0, 1), string.Empty, 2, 0);
+                    break;
+                case "2":
+                    var anschlagscheiben = (this.PureaPmClass.DRNeu != 0) ? 15 : 5;
+                    double glasLaenge1 = this.methods.GlassLengthConvert(this.PureaPmClass.QuerSprosseEing) - PureVariableConteiner.QszwischenGlasHalbe;
+                    //// upper glass fields
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.anzahlDF, this.PureaPmClass.EindeckungTyp, "Rechteck", this.variable.GlasBreite, Conv.sRound(glasLaenge1, 0, 1), Conv.sRound(glasLaenge1, 0, 1), string.Empty, 2, 0);
+                    double glasLaenge2 = this.variable.Lgp - glasLaenge1 - PureVariableConteiner.QszwischenGlas;
+                    //// lower glass fields
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.anzahlDF, this.PureaPmClass.EindeckungTyp, "Rechteck", this.variable.GlasBreite, Conv.sRound(glasLaenge2, 0, 1), Conv.sRound(glasLaenge2, 0, 1), string.Empty, 2, 0);            
+                    break;
+                default:
+                    for (int i = 0; i <= this.PureaPmClass.AnzDachFelder - 1; i++)
+                    {              
+                        ////1. Without crossbars
+                        if (this.variable.QS1_Feld[i] == 0 && this.PureaPmClass.QS2_Feld[i] == 0)
+                        {
+                            var glasslist = this.methods.Withoutcrossbars();
+                            this.methods.InsertGlassForDefaulValues(glasslist);
+                        }
+
+                        ////2. for 1 transverse rung per roof bay
+                        if (this.variable.QS1_Feld[i] != 0 && this.PureaPmClass.QS2_Feld[i] == 0)  
+                        {
+                            var glasslist = this.methods.OneCrossRung(i);
+                            this.methods.InsertGlassForDefaulValues(glasslist);
+                        }
+
+                        ////3. For the 2nd transverse rung per roof bay completely different rules:
+                        if (this.variable.QS1_Feld[i] != 0 && this.PureaPmClass.QS2_Feld[i] != 0) 
+                        {
+                            var glasslist = this.methods.TowTransverseRung(i);
+                            this.methods.InsertGlassForDefaulValues(glasslist);
+                        }
+                    }
+                break;
+            }
+            return true;
+        }
+    }
+}
