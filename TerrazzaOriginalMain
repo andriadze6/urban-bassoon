@@ -1,0 +1,263 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using PcfOOP;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassTerrazza;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaVarableConteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.TerrazzaOriginal
+{
+    /// <summary>
+    /// Class For Terrazza Original and sempra, glass Calculation
+    /// </summary>
+    public class TerrazzaOriginalMain
+    {
+        /// <summary>
+        /// All nececery Functions for converting Pm in correct variable
+        /// </summary>
+        private PmTrasferFromSqlcs dataWorker;
+
+        /// <summary>
+        /// Pm cointeiner
+        /// </summary>
+        private PmConteinertGlassTerrazza terrazzaPmClass;
+
+        /// <summary>
+        /// All required Variables
+        /// </summary>
+        private TerrazzaVaribale varibale;
+
+
+        /// <summary>
+        /// Order Number
+        /// </summary>
+        private int belegeNr;
+
+        /// <summary>
+        /// produck  postion 
+        /// </summary>
+        private short posNr;
+
+        /// <summary>
+        /// Crate all required class
+        /// </summary>
+        /// <param name="belegeNr">order Number</param>
+        /// <param name="posNr">Postion Number</param>
+        public TerrazzaOriginalMain(int belegeNr, short posNr)
+        {
+            this.dataWorker = new PmTrasferFromSqlcs(belegeNr, posNr);
+            this.terrazzaPmClass = new PmConteinertGlassTerrazza(this.dataWorker);
+            this.varibale = new TerrazzaVaribale(this.terrazzaPmClass);
+            this.belegeNr = belegeNr;
+            this.posNr = posNr;
+        }
+
+        /// <summary>
+        /// calculates Glass size for artikle 2709  and pass to webex and saves it to SetUndCheckGlasMasseUBEQE_1
+        /// </summary>
+        public void GetGlasmasseQENeuTest()
+        {
+            double längeGlas1 = 0;
+            if (this.terrazzaPmClass.DLufter == "ja")
+            {
+                this.DLufterja();
+            }
+            this.Switchsituation();
+            if (this.terrazzaPmClass.Quersprosse == "ja")
+            {
+                if (this.terrazzaPmClass.Sprosseweg == 2)
+                {
+                    längeGlas1 = this.SprossewegEqual2();
+                    return;
+                }
+                if (this.terrazzaPmClass.NochEineQuersprosse == "ja")
+                {
+                    längeGlas1 = this.NochEineQuersprosseJa();
+                }
+                else
+                {
+                    längeGlas1 = this.NochEineQuersprosseJaElse();
+                }
+            }
+            else
+            {
+                längeGlas1 = this.QuersprosseZusEqualOne();
+            }
+            if (this.terrazzaPmClass.DLufter == "ja")
+            {
+                //// Length of lower glass field if ventilation exists above
+                this.LowerGlass(längeGlas1);
+            }
+        }
+
+        /// <summary>
+        /// Calculat glass size depending on  SWigaSystem
+        /// </summary>
+        private void Switchsituation()
+        {
+            switch (this.terrazzaPmClass.SWigaSystem)
+            {
+                case "11":
+                case "12":
+                case "11S":
+                case "12S":
+                    double sLguNuk = Conv.sRound(this.terrazzaPmClass.Lgu, 0, -1);
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, sLguNuk, sLguNuk, string.Empty, 2, 0);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Calculats Glass size when  DLufter ==ja
+        /// </summary>
+        private void DLufterja()
+        {
+            double sp1 = 4;
+            double aglu = 15;
+            double aglu1 = 26 - aglu;
+            double lglu2 = aglu1 / this.varibale.CosAlpha;
+            double lglu1 = (80 + 6) * this.varibale.TanAlpa;
+            double lglu3 = lglu1 + lglu2;
+            double lglu = Conv.sRound(700 - sp1 + lglu3, 0, 1);
+            double bLglu = Conv.sRound(this.terrazzaPmClass.Achsmass - 50, 0, 1);
+            GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", bLglu, lglu, lglu, string.Empty, 2, 0);
+        }
+
+        /// <summary>
+        /// Calculats Glass size when  DLufter == ja lower part
+        /// </summary>
+        /// <param name="längeGlas1">Glass lenght </param>
+        private void LowerGlass(double längeGlas1)
+        {
+            //// Length of lower glass field if ventilation exists above
+            var längeGlasLRest = Conv.sRound(längeGlas1 - this.varibale.Vklg - 4, 0, 1);
+            GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlasLRest, längeGlasLRest, string.Empty, 2, 0);
+        }
+
+        /// <summary>
+        /// calculat glass size when  QuersprosseZus == 1
+        /// </summary>
+        /// <returns> Glass length</returns>
+        private double QuersprosseZusEqualOne()
+        {
+            double längeGlas1 = Conv.sRound(this.varibale.Lgp, 0, 1);
+            if (this.terrazzaPmClass.QuersprosseZus == 1)
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - 1 - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+            }
+            else
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+            }
+            return längeGlas1;
+        }
+
+        /// <summary>
+        /// Calculate situetion when Sprosseweg == 2
+        /// </summary>
+        /// <returns> längeGlas1 Value</returns>
+        private double SprossewegEqual2()
+        {
+            double längeGlas1 = Conv.sRound((this.varibale.Lgp - (60 - (2 * TerrazzaVaribale.GlasEinstand))) / 2, 0, 1);
+            if (this.terrazzaPmClass.QuersprosseZus == 1)
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, (this.varibale.AnzahlDF * 2) - 1 - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                if (this.terrazzaPmClass.DLufter == "ja")
+                {
+                    var längeGlasLRest = Conv.sRound(längeGlas1 - this.varibale.Vklg - 4, 0, 1);
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlasLRest, längeGlasLRest, string.Empty, 2, 0);
+                }
+            }
+            else
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, (this.varibale.AnzahlDF * 2) - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                if (this.terrazzaPmClass.DLufter == "ja")
+                {
+                    var längeGlasLRest = Conv.sRound((längeGlas1 - this.varibale.Vklg) - 4, 0, 1);
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlasLRest, längeGlasLRest, string.Empty, 2, 0);
+                }
+            }
+            return längeGlas1;
+        }
+
+        /// <summary>
+        /// this function is used for  GetGlasmasseQENeuTest when  NochEineQuersprosse != "ja"
+        /// </summary>
+        /// <returns> längeGlas1 Value</returns>
+        private double NochEineQuersprosseJaElse()
+        {
+            double längeGlas1 = 0;
+            double längeGlas2 = 0;
+            if (this.terrazzaPmClass.Sprosseweg == 3 | this.terrazzaPmClass.Sprosseweg == 4)
+            {
+                if (this.terrazzaPmClass.Lg1 == this.terrazzaPmClass.LargerLg)
+                {
+                    längeGlas1 = Conv.sRound((this.varibale.Lgp - this.terrazzaPmClass.Lg2 - (60 - (2 * TerrazzaVaribale.GlasEinstand))), 0, 1);
+                    längeGlas2 = Conv.sRound((this.varibale.Lgp - this.terrazzaPmClass.Lg1 - (60 - (2 * TerrazzaVaribale.GlasEinstand))), 0, 1);
+                }
+                else
+                {
+                    längeGlas1 = Conv.sRound((this.varibale.Lgp - this.terrazzaPmClass.Lg2 - (60 - (2 * TerrazzaVaribale.GlasEinstand))), 0, 1);
+                    längeGlas2 = Conv.sRound((this.varibale.Lgp - this.terrazzaPmClass.Lg1 - (60 - (2 * TerrazzaVaribale.GlasEinstand))), 0, 1);
+                }
+                if (this.terrazzaPmClass.QuersprosseZus == 1)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - 1 - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas2, längeGlas2, string.Empty, 2, 0);
+                }
+                else
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas2, längeGlas2, string.Empty, 2, 0);
+                }
+            }
+            return längeGlas1;
+        }
+
+        /// <summary>
+        /// this function is used for  GetGlasmasseQENeuTest when  NochEineQuersprosse == "ja"
+        /// </summary>
+        /// <returns> längeGlas1 Value</returns>
+        private double NochEineQuersprosseJa()
+        {
+            double längeGlas1 = 0;
+            double längeGlas2 = 0;
+            double längeGlas3 = 0;
+            if (this.terrazzaPmClass.Lg1 == this.terrazzaPmClass.LargerLg)
+            {
+                längeGlas1 = Conv.sRound(((this.varibale.Lgp - this.terrazzaPmClass.Lg2) / 2) - (60 - (2 * TerrazzaVaribale.GlasEinstand)), 0, 1);
+                längeGlas2 = Conv.sRound(((this.varibale.Lgp - this.terrazzaPmClass.Lg2) / 2) - (60 - (2 * TerrazzaVaribale.GlasEinstand)), 0, 1);
+                längeGlas3 = Conv.sRound(this.varibale.Lgp - this.terrazzaPmClass.Lg1 - (60 - (2 * TerrazzaVaribale.GlasEinstand)), 0, 1);
+            }
+            else
+            {
+                längeGlas1 = Conv.sRound((this.varibale.Lgp - this.terrazzaPmClass.Lg2 - (60 - (2 * TerrazzaVaribale.GlasEinstand))), 0, 1);
+                längeGlas2 = Conv.sRound(((this.varibale.Lgp - this.terrazzaPmClass.Lg1) / 2) - (60 - (2 * TerrazzaVaribale.GlasEinstand)), 0, 1);
+                längeGlas3 = Conv.sRound(((this.varibale.Lgp - this.terrazzaPmClass.Lg1) / 2) - (60 - (2 * TerrazzaVaribale.GlasEinstand)), 0, 1);
+            }
+            if (this.terrazzaPmClass.QuersprosseZus == 1)
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - 1 - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas2, längeGlas2, string.Empty, 2, 0);
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas3, längeGlas3, string.Empty, 2, 0);
+            }
+            else
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF - this.terrazzaPmClass.AnzahlDL, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas1, längeGlas1, string.Empty, 2, 0);
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas2, längeGlas2, string.Empty, 2, 0);
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, this.varibale.AnzahlDF, this.terrazzaPmClass.EindeckungTyp, "Rechteck", this.varibale.GlasBreite, längeGlas3, längeGlas3, string.Empty, 2, 0);
+            }
+            return längeGlas1;
+        }
+    }
+}
