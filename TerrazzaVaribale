@@ -1,0 +1,177 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassTerrazza;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaVarableConteiner
+{
+    /// <summary>
+    /// Varable Class For Terrrazza
+    /// </summary>
+    public class TerrazzaVaribale
+    {
+        /// <summary>
+        /// glasEinstand Value
+        /// </summary>
+        public const double GlasEinstand = 17.5;
+
+        /// <summary>
+        /// diffGlas Value
+        /// </summary>
+        private const double DiffGlas = 45;
+
+        /// <summary>
+        /// diffStegplatte Value
+        /// </summary>
+        private const double DiffStegplatte = 40;
+
+        /// <summary>
+        /// constructo for class
+        /// </summary>
+        /// <param name="terrazzaPmClass">pm class</param>
+        public TerrazzaVaribale(PmConteinertGlassTerrazza terrazzaPmClass)
+        {
+            this.TanAlpa = Convert.ToDouble(Math.Tan(terrazzaPmClass.Alpha * Math.PI / 180));
+            this.CosAlpha = Convert.ToDouble(Math.Cos(terrazzaPmClass.Alpha * Math.PI / 180));
+            this.SinAlpha = Math.Sin(terrazzaPmClass.Alpha * Math.PI / 180);
+            this.AnzahlDF = terrazzaPmClass.AnzahlDT - 1;
+            this.Lgp = this.GetLaengeGlas(terrazzaPmClass);
+            this.GlasBreite = this.Breite(terrazzaPmClass);
+            if (terrazzaPmClass.DLufter == "ja")
+            {
+                this.Vklg = this.DLufterJa();
+            }
+        }
+
+        /// <summary>
+        /// Tan Alpa
+        /// </summary>
+        public double TanAlpa { get; set; }
+
+        /// <summary>
+        /// SinAlpha Value
+        /// </summary>
+        public double SinAlpha { get; set; }
+
+        /// <summary>
+        /// Cos Alpa
+        /// </summary>
+        public double CosAlpha { get; set; }
+
+        /// <summary>
+        /// anzahlDF value
+        /// </summary>
+        public double AnzahlDF { get; set; }
+
+        /// <summary>
+        /// glasBreite variable
+        /// </summary>
+        public double GlasBreite { get; set; }
+
+        /// <summary>
+        /// Vklg Variable
+        /// </summary>
+        public double Vklg { get; set; }
+
+
+        /// <summary>
+        /// Lgp Variable
+        /// </summary>
+        public double Lgp { get; set; }
+
+        /// <summary>
+        /// Function calculates total length of glass (Lgp) according to template.
+        /// </summary>
+        /// <param name="terrazzaPmClass"> Pm class</param>
+        /// <returns>Toltal lenght of glass</returns>
+        private double GetLaengeGlas(PmConteinertGlassTerrazza terrazzaPmClass)
+        {
+            double lgp = 0, z6 = 0, z5 = 0, z4 = 0, x2 = 0, lgu = 0;
+            lgu = 0;
+            double x1 = 25 * this.TanAlpa;
+            if (terrazzaPmClass.SWigaSystem == "07" | terrazzaPmClass.SWigaSystem == "08")
+            {
+                x2 = terrazzaPmClass.STiefeDU - 156;
+                z4 = x2 / this.CosAlpha;
+                z5 = 14 * this.TanAlpa;
+                if (terrazzaPmClass.SOhneRinne == 1)
+                {
+                    z6 = z4 + z5 + 26.2;
+                }
+                else
+                {
+                    z6 = ((terrazzaPmClass.STiefeDU - 51) - (6 * this.SinAlpha)) / this.CosAlpha;
+                }
+                lgp = terrazzaPmClass.LDT + z6 + x1;
+            }
+            double sPW = 15;
+            if (terrazzaPmClass.Alpha > 6)
+            {
+                sPW = 18;
+            }
+            if (terrazzaPmClass.SWigaSystem == "11" | terrazzaPmClass.SWigaSystem == "12" | terrazzaPmClass.SWigaSystem == "11S" | terrazzaPmClass.SWigaSystem == "12S")
+            {
+                if (terrazzaPmClass.RinnenArt != "0")
+                {
+                    lgp = terrazzaPmClass.LDT + sPW + x1;
+                }
+                else
+                {
+                    lgp = terrazzaPmClass.LDT + 25 + x1;
+                }
+            }
+            else
+            {
+                lgp = terrazzaPmClass.LDT + 25 + x1;
+            }
+            if (terrazzaPmClass.SWigaSystem == "11" | terrazzaPmClass.SWigaSystem == "12" | terrazzaPmClass.SWigaSystem == "11S" | terrazzaPmClass.SWigaSystem == "12S")
+            {
+                if (terrazzaPmClass.RinnenArt == "0")
+                {
+                    lgu = (((terrazzaPmClass.STiefeDU - 6) - (6 * this.SinAlpha)) / this.CosAlpha) - (65 + 25);
+                }
+                else
+                {
+                    lgu = (((terrazzaPmClass.STiefeDU - 23.9) - (6 * this.SinAlpha)) / this.CosAlpha) - (65 + sPW);
+                }
+            }
+            return lgp;
+        }
+
+        /// <summary>
+        /// Width calulculation
+        /// </summary>
+        /// <param name="terrazzaPmClass">pm Class</param>
+        /// <returns>return width</returns>
+        private double Breite(PmConteinertGlassTerrazza terrazzaPmClass)
+        {
+            double glassWidth = 0;
+            if (terrazzaPmClass.Eindeckung == "16mm")
+            {
+                glassWidth = Conv.sRound(terrazzaPmClass.Achsmass - DiffStegplatte, 0, 1);
+            }
+            else
+            {
+                glassWidth = Conv.sRound(terrazzaPmClass.Achsmass - DiffGlas, 0, 1);
+            }
+            return glassWidth;
+        }
+
+        /// <summary>
+        /// this fumction is used for GetGlasmasseQENeuTest
+        /// </summary>
+        /// <returns>double vklg value </returns>
+        private double DLufterJa()
+        {
+            double sp1 = 4;
+            double aglu = 15;
+            double x1 = 25 * this.TanAlpa;
+            double x2 = 0;
+            double x0 = x1 + x2;
+            double vklg = 600 + x0 + sp1;
+            return vklg;
+        }
+    }
+}
