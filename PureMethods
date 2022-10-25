@@ -1,0 +1,254 @@
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using PcfCsharp.FixeDaten;
+using PcfOOP;
+using WeinorAppServer.Core.DataAccess;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurePmconteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.TerrazzaPurevariableConteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Helper.TerrazzaPureMethods
+{
+    /// <summary>
+    /// method to calculcuate Pure Class Size
+    /// </summary>
+    public class PureMethods
+    {
+        /// <summary>
+        /// Pm Class
+        /// </summary>
+        private PurePmConteinerClass pureaPmClass;
+
+        /// <summary>
+        /// Variable calss for culculation
+        /// </summary>
+        private PureVariableConteiner variable;
+
+        /// <summary>
+        /// Order Number
+        /// </summary>
+        private int belegeNr;
+
+        /// <summary>
+        /// produck  postion 
+        /// </summary>
+        private short posNr;
+
+        /// <summary>
+        /// Using to use all requared class
+        /// </summary>
+        /// <param name="pureaPmClass">Pm Class</param>
+        /// <param name="variable">Variable calss for culculation</param>
+        /// <param name="belegeNr">order Number</param>
+        /// <param name="posNr">Postion Number</param>
+        public PureMethods(PurePmConteinerClass pureaPmClass, PureVariableConteiner variable, int belegeNr,  short posNr)
+        {
+            this.pureaPmClass = pureaPmClass;
+            this.variable = variable;
+            this.belegeNr = belegeNr;
+            this.posNr = posNr;
+        }
+
+        /// <summary>
+        /// Without crossbars
+        /// </summary>
+        /// <returns>list of glass length</returns>
+        public List<double> Withoutcrossbars()
+        {
+            var listForGlass = new List<double>();
+            listForGlass.Add(this.variable.Lgp);
+            return listForGlass;
+        }
+
+        /// <summary>
+        /// 1 cross rung per roof panel
+        /// </summary>
+        /// <param name="i">Parametr to use Pm from list</param>
+        /// <returns>list of glass lenght</returns>
+        public List<double> OneCrossRung(int i)
+        {
+            var listForGlass = new List<double>();
+            double checkNUmber = this.pureaPmClass.Tiefe - this.variable.QS1Pos_Feld[i];
+            ////Check whether cross rung is centered. If yes, write off 2 glass fields.
+            if (this.variable.QS1Pos_Feld[i] == checkNUmber)
+            {
+                //// illogical case?
+                if (this.pureaPmClass.QS1Typ_Feld[i] == 2) 
+                {
+                    var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[1], 0, "1", 1);
+                    listForGlass.Add(glasslength);
+                }
+                else
+                {
+                    var glasslength1 = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "2", 1);
+                    listForGlass.Add(glasslength1);
+                    var glasslength2 = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "2", 2);
+                    listForGlass.Add(glasslength2);
+                }
+            }
+            if (this.pureaPmClass.QS1Typ_Feld[i] == 2)
+            {
+                var glasslength = this.ThisLengthSubtract(0, 0, "3", 1);
+                listForGlass.Add(glasslength);
+            }
+            else
+            {
+                var glasslength1 = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "4", 1);
+                listForGlass.Add(glasslength1);
+                var glasslength2 = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "4", 2);
+                listForGlass.Add(glasslength2);
+            }
+            return listForGlass;
+        }
+
+        /// <summary>
+        ///  for the 2nd transverse rung per roof bay completely different rules:
+        /// </summary>
+        /// <param name="i">Parametr to use Pm from list</param>
+        /// <returns>list of glass lenght</returns>
+        public List<double> TowTransverseRung(int i)
+        {
+            var listForGlass = new List<double>();
+            ////Standardfall
+            if (this.variable.QS2Pos_Feld[i] > this.variable.QS1Pos_Feld[i]) 
+            {
+                if (this.pureaPmClass.QS1Typ_Feld[i] != 2)
+                {
+                    var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "5", 0);
+                    listForGlass.Add(glasslength);
+                }
+                if (this.pureaPmClass.QS2Typ_Feld[i] != 2)
+                {
+                    if (this.variable.Aluflag[i] == 0)
+                    {
+                        var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], this.variable.QS2Pos_Feld[i], "6", 0);
+                        listForGlass.Add(glasslength);
+                    }
+                    else
+                    {
+                        var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], this.variable.QS2Pos_Feld[i], "6", 1);
+                        listForGlass.Add(glasslength);
+                    }
+                }
+
+                ////bottom field
+                var glasslength1 = this.ThisLengthSubtract(0, this.variable.QS2Pos_Feld[i], "7", 0);
+                listForGlass.Add(glasslength1);
+            }
+            else           
+            {
+                if (this.pureaPmClass.QS2Typ_Feld[i] == 2)
+                {
+                    this.variable.Aluflag[i] = 1;
+                }
+                else
+                {
+                    var glasslength = this.ThisLengthSubtract(0, this.variable.QS2Pos_Feld[i], "8", 0);
+                    listForGlass.Add(glasslength);
+                }
+                if (this.pureaPmClass.QS1Typ_Feld[i] != 2)
+                {
+                    if (this.variable.Aluflag[i] == 0)
+                    {
+                        var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], this.variable.QS2Pos_Feld[i], "9", 0);
+                        listForGlass.Add(glasslength);
+                    }
+                    else
+                    {
+                        var glasslength = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], this.variable.QS2Pos_Feld[i], "9", 1);
+                        listForGlass.Add(glasslength);
+                    }
+                }
+                var glasslength2 = this.ThisLengthSubtract(this.variable.QS1Pos_Feld[i], 0, "10", 0);
+                listForGlass.Add(glasslength2);
+            }
+            return listForGlass;
+        }
+
+        /// <summary>
+        /// Calculates Glass length
+        /// </summary>
+        /// <param name="qsPos1horizontal">Qs Input Value</param>
+        /// <param name="qsPos2horizontal">QS2 input Value</param>
+        /// <param name="fall">fall input Value</param>
+        /// <param name="differenzieren">differenzieren Input Value</param>
+        /// <returns>double Value</returns>
+        public double ThisLengthSubtract(double qsPos1horizontal, double qsPos2horizontal, string fall, int differenzieren)
+        {
+            double anschlagscheiben = (this.pureaPmClass.DRNeu != 0) ? 15 : 5; //// flbau 11.05.2021 - A10577 - DRNeu - +10mm auf AnschlagScheiben bei neuer Dachrinne
+            double fRet = 0;
+            ////umrechnen:
+            double qsPos1 = this.GlassLengthConvert(qsPos1horizontal);
+            double qsPos2 = this.GlassLengthConvert(qsPos2horizontal);
+            switch (fall)
+            {
+                case "1":
+                    fRet = (qsPos1 - PureVariableConteiner.QszwischenGlasHalbe) - PureVariableConteiner.QszwischenGlas - PureVariableConteiner.AludummiReal;
+                    break;
+                case "2":
+                    fRet = (differenzieren == 1) ? (qsPos1 - PureVariableConteiner.QszwischenGlasHalbe) : this.variable.Lgp - (qsPos1 - PureVariableConteiner.QszwischenGlasHalbe) - PureVariableConteiner.QszwischenGlas;
+                    break;
+                case "3": //// cross rung 1 downpipe passage
+                    fRet = this.variable.Lgp - PureVariableConteiner.AludummiReal - PureVariableConteiner.QszwischenGlas;
+                    break;
+                case "4": ////Cross rung 1 free input
+                    fRet = (differenzieren == 1) ? qsPos1 - PureVariableConteiner.QszwischenGlasHalbe : this.variable.Lgp - (qsPos1 - PureVariableConteiner.QszwischenGlasHalbe) - PureVariableConteiner.QszwischenGlas;
+                    break;
+                case "5":
+                    fRet = qsPos1 - PureVariableConteiner.QszwischenGlasHalbe;
+                    break;
+                case "6":
+                    fRet = (differenzieren == 0) ? qsPos2 - qsPos1 - PureVariableConteiner.QszwischenGlas : (qsPos2 - PureVariableConteiner.QszwischenGlasHalbe) - PureVariableConteiner.QszwischenGlas - PureVariableConteiner.AludummiReal;
+                    break;
+                case "7": //// Cross rung 1 and cross rung 2 (free input or aluminum)
+                    fRet = this.variable.Lgp - qsPos2 - PureVariableConteiner.QszwischenGlasHalbe;
+                    break;
+                case "8": ////SONDER - illogical case
+                    fRet = qsPos2 - PureVariableConteiner.QszwischenGlasHalbe;
+                    break;
+                case "9": ////SONDER - irrelevant case
+                    fRet = (differenzieren == 0) ? qsPos1 - qsPos2 - PureVariableConteiner.QszwischenGlas : (qsPos1 - PureVariableConteiner.QszwischenGlasHalbe) - PureVariableConteiner.QszwischenGlas - PureVariableConteiner.AludummiReal;
+                    break;
+                case "10": ////SONDER - QS 2 over QS 1 - covers all cases
+                    fRet = this.variable.Lgp - qsPos1 - PureVariableConteiner.QszwischenGlasHalbe;
+                    break;
+                default:
+                    break;
+            }
+            return Conv.sRound(fRet, 2, 0); ////immer accurate to 2 decimal places
+        }
+
+        /// <summary>
+        /// converts from horizontal to oblique - but not enough because of different calculations
+        /// </summary>
+        /// <param name="laengeHorizontal"> Input Value</param>
+        /// <returns>double rounded Value</returns>
+        public double GlassLengthConvert(double laengeHorizontal)
+        {
+            double ag_1 = 30;
+            double glasbisUKQS = 8.5;
+            double fRet = ((laengeHorizontal - ag_1) / Math.Cos(this.pureaPmClass.A_rad)) + (Math.Tan(this.pureaPmClass.A_rad) * glasbisUKQS);
+            return Conv.sRound(fRet, 2, 0);
+        }
+
+        /// <summary>
+        /// exprot glass to sqpl
+        /// </summary>
+        /// <param name="listeGlas">list of glas lenth</param>
+        public void InsertGlassForDefaulValues(List<double> listeGlas)
+        {
+            var glasAusListe = Basis.countElements(listeGlas);
+            foreach (var glasfeld in glasAusListe)
+            {
+                GlassInsertClass.InsertGlasToBelegePosPMGlas(this.belegeNr, this.posNr, glasfeld.Value, this.pureaPmClass.EindeckungTyp, "Rechteck", this.variable.GlasBreite, Conv.sRound(glasfeld.Key, 0, 1), Conv.sRound(glasfeld.Key, 0, 1), string.Empty, 2, 0);
+            }
+        }
+    }
+}
