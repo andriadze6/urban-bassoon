@@ -1,0 +1,131 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using WeinorAppServer.PCF.Services.Glass_calculation.Conteiner;
+using WeinorAppServer.PCF.Services.Glass_calculation.GlassInsertToSqlTable;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+using WeinorAppServer.Verkauf.Services;
+
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.W17
+{
+    /// <summary>
+    /// W17 Glass calculation
+    /// </summary>
+    public class W17GlassCalculation
+    {
+        /// <summary>
+        /// variable class
+        /// </summary>
+        private W17Variables variable;
+
+        /// <summary>
+        /// Pmconteiner Glass
+        /// </summary>
+        private W17PmConteiner pmvalues;
+
+        /// <summary>
+        /// Consructo fo class
+        /// </summary>
+        /// <param name="belegeNr">order number</param>
+        /// <param name="posNr">postion number</param>
+        /// /// <param name="wingsNumber">wingsNumber number</param>
+        public W17GlassCalculation(int belegeNr, short posNr, int wingsNumber)
+        {
+            var datatrasfer = new PmTrasferFromSqlcs(belegeNr, posNr);
+            this.pmvalues = new W17PmConteiner(datatrasfer);
+            this.variable = new W17Variables(this.pmvalues, wingsNumber);
+            this.BelegeNr = belegeNr;
+            this.PosNr = posNr;
+        }
+
+        /// <summary>
+        /// Order Number
+        /// </summary>
+        private int BelegeNr { get; set; }
+
+        /// <summary>
+        /// Postion Number
+        /// </summary>
+        private short PosNr { get; set; }
+
+        /// <summary>
+        /// Glass calculation
+        /// </summary>
+        /// <returns>bool value</returns>
+        public bool SetGlasmasseW17U100()
+        {
+            var saveNewPm = new VKBelegServiceProCon();
+            if (this.variable.SumWeight > 80)
+            {
+                return false; ////one Glass wings weight can not be more than 80 kg
+            }
+            else
+            {
+                var pmlist = new List<NewPmValueClass>();
+                Data.DeleteMrGlas();
+                var pmValue = string.Empty;
+                var pmValueEF = string.Empty;
+                var pmLabel = string.Empty;
+                var pmName = string.Empty;
+                switch (this.pmvalues.VorauswahlBedienung)
+                {
+                    case 1:
+                    case 2:
+                        pmValue = Convert.ToString(this.variable.SHoehe - 50);
+                        pmLabel = "Höhe Griffleiste (mm) von UK Glas bis Mitte erstes Loch";
+                        pmName = "HoeheBearbeitung";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValue, pmLabel);
+                        break;
+                    case 3:
+                        pmValue = Convert.ToString(this.variable.SHoehe);
+                        pmName = "HoeheBearbeitung";
+                        pmLabel = "Höhe Muschelgriff(mm)";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValue, pmLabel);
+                        break;
+                    case 4:
+                        pmValue = Convert.ToString(this.variable.SHoehe);
+                        pmName = "HoeheBearbeitung";
+                        pmLabel = "Höhe Schloss (mm)";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValue, pmLabel);
+                        break;
+                }
+                switch (this.pmvalues.VorauswahlBedienungEF)
+                {
+                    case 1:
+                    case 2:
+                        pmValueEF = Convert.ToString(this.variable.SHoeheEF - 50);
+                        pmName = "HoeheBearbeitungEF";
+                        pmLabel = "Höhe Griffleiste (mm) von UK Glas bis Mitte erstes Loch";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValueEF, pmLabel);
+                        break;
+                    case 3:
+                        pmValueEF = Convert.ToString(this.variable.SHoeheEF);
+                        pmName = "HoeheBearbeitungEF";
+                        pmLabel = "Höhe Muschelgriff (mm)";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValueEF, pmLabel);
+                        break;
+                    case 4:
+                        pmValueEF = Convert.ToString(this.variable.SHoeheEF);
+                        pmName = "HoeheBearbeitungEF";
+                        pmLabel = "Höhe Schloss(mm))";
+                        saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, pmName, pmValueEF, pmLabel);
+                        break;
+                }
+                string sGlasmasse = Convert.ToString(this.variable.SBreiteScheiben) + " x " + Convert.ToString(this.variable.SHoeheScheiben);
+                saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, "FuellgFeld11", sGlasmasse, "0");
+                for (int i = 1; i <= this.variable.SumwingsNumber; i++)
+                {
+                    GlassInsertClass.InsertGlasToBelegePosPMGlas(this.BelegeNr, this.PosNr, 1, this.pmvalues.SsGlasTyp, "Rechteck", this.variable.SBreiteScheiben, this.variable.SHoeheScheiben, this.variable.SHoeheScheiben, this.variable.SBezFluegel[i], 0, 1);
+                }
+                double sLaengeGlasauflage = 0;
+                sLaengeGlasauflage = this.variable.SBreiteScheiben + 6;
+                saveNewPm.SetPMWert(this.BelegeNr, this.PosNr, "LaengeGlasauflage", sLaengeGlasauflage.ToString(), "0");
+                return true;
+            }   
+        }
+    }
+}
