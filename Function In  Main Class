@@ -1,0 +1,77 @@
+/// <summary>
+        /// calculates EBoX poestions and add it to SqlDatebase
+        /// </summary>
+        /// <param name="eBoxAmount"> EBox Amount</param>
+        /// <returns>list of Ebox Postions </returns>
+        public string EBoxPostion(double eBoxAmount)
+        {
+            var roofRackAmount = Env.GetPmWert("AnzahlDT");
+            var langthofGutter = Convert.ToDouble(Env.GetPmWert("LaengeDR"));
+            if (roofRackAmount == "0")
+            {
+                if (eBoxAmount == 1)
+                {
+                    return intern.EboxPostionCase1(langthofGutter);
+                }
+                if (eBoxAmount == 2)
+                {
+                    return intern.EboxpostionCase2(langthofGutter);
+                }
+                else
+                {
+                    return "0";
+                }
+            }
+            else
+            {
+                var rackPostions = Env.GetPmWert("BearbWAFuerDT");
+                var rackPostionsList = rackPostions.Split("/");
+                if (eBoxAmount == 1)
+                {
+                    var division = langthofGutter / 2;
+                    var eBoxPostion1 = division;
+                    double rack1 = intern.FindRack1(rackPostionsList, eBoxPostion1);
+                    var distance = Math.Abs(rack1 - division); //// distance between rack and Ebox
+                    if (distance <= 50)
+                    {
+                        return intern.EboxPostionCase3(langthofGutter, rack1);
+                    }
+                    if (distance > 50 && distance < 300)
+                    {
+                        return intern.EboxPostionCase4(langthofGutter, rack1);
+                    }
+                    else
+                    {
+                        return eBoxPostion1.ToString();
+                    }
+                }
+                if (eBoxAmount == 2)
+                {
+                    var division = langthofGutter / 3;
+                    var eBoxPostion1 = division; //// First Ebox postion Form the left side. outsidewiew 
+                    var eBoxPostion2 = division * 2; //// Second Ebox postion form lef side  of gutter. outsidewiew
+                    var rack = intern.FindRack1aAndRack2(rackPostionsList, eBoxPostion1, eBoxPostion2); //// rack postions wich is near to eboxs
+                    double rack1 = rack[0].Rack1;
+                    double rack2 = rack[0].Rack2;
+                    var distance = Math.Abs(rack1 - division); //// distance between rack and Ebox
+                    if (distance <= 50)
+                    {
+                        return intern.EboxPostionCase5(langthofGutter, rack1, rack2);
+                    }
+                    if (distance > 50 && distance < 300)
+                    {
+                        return intern.EboxpostionCase6(langthofGutter, rack1, rack2);
+                    }
+                    else
+                    {
+                        var EBoxesPostions = string.Empty;
+                        EBoxesPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+                        return EBoxesPostions;
+                    }
+                }
+                else
+                {
+                    return "0";
+                }
+            }
+        }
