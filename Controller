@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using WeinorWeb.Classes;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorWeb.Models.Auswertung;
+
+namespace WeinorWeb.Controllers
+{
+    public class AuswertungWareneingangController : Controller
+    {
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public JsonResult GenerationTable(AuswertungWareneingang auswertungObj)
+        {
+            try
+            {
+                var helper = new Helper();
+                var statusArray = auswertungObj.StatusArray;
+                var iNameArray = auswertungObj.INameArray;
+                var startTime = auswertungObj.startTime;
+                var endTime = auswertungObj.endTime;
+                var table = helper.proxy.AuswertungWareneingangDate(startTime, endTime, statusArray, iNameArray);
+                return Json(table, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        public JsonResult GetIName()
+        {
+            try
+            {
+                var helper = new Helper();
+                var IName = helper.proxy.WareneinganIName();
+                return Json(IName, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        public JsonResult Totalamount()
+        {
+            try
+            {
+                var helper = new Helper();
+                var totalAmount = helper.proxy.TotalOffenAndWarten();
+                return Json(totalAmount, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+               return Json(ex, JsonRequestBehavior.AllowGet); ;
+            }
+        }
+    }
+}
