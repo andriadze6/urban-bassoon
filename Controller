@@ -1,0 +1,33 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using WeinorWeb.Classes;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Contracts.Drawing2D;
+
+namespace WeinorWeb.Controllers
+{
+    public class Terrazza2dDrawingController:Controller
+    {
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public JsonResult InformationForDrawing(int belegNr, short posNr)
+        {
+            try
+            {
+                var helper = new Helper();
+                var result1 = helper.proxy.DataFor2DTerrazza(belegNr, posNr);
+                return Json(result1, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(ex, JsonRequestBehavior.AllowGet);
+            }
+        }
+    }
+}
