@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using EvalLib2;
+using WeinorAppServer.PCF.Contracts;
+using System.Data.SqlClient;
+using System.Data;
+using PcfOOPBase.Datenbank;
+using PcfOOPBase.Datenbank.Klassen;
+using PcfOOP.Helpers.Daecher;
+using WeinorAppServer.Core.DataAccess.MaWi;
+
+namespace PcfOOP.Daecher
+{
+    public class TerrazzaPureIntern
+    {
+        #region aufdopplungen
+
+        public string GetAufdopplungPure(double anzGleisew17, double vertiPlus, double version)
+        {
+            bool twas = (Env.GetPmWertNum("TWAS") != 0) ? true : false;
+            string aufdopplungID = "0";
+            string fRet = "0";
+
+            // flbau 28.04.2022:
+            // erstmal noch keine Fallunterscheidung, weil noch nicht fertig.
+            // damit beim twas das 50x60 kommen kann, muss auch der Abzug -10mm fuer die UBEs / Glasmasse eingerichtet werden.
+            // wenn ich das jetzt mitveroeffentlichen wuerde, waere es vermutlich falsch, da da das 50x60 weiterhin mit Spalt beim twas 
+            // alles noch nicht fertig.
+
+            //if (twas)
+            //{
+            //    aufdopplungID = (version == 5) ? "822" : aufdopplungID; // 50x60
+            //    // andere Versionen bei TWAS haben keine Aufdopplung
+            //    // noch unklar: mehrgleisige 17; VertiPlus
+            //}
+            //else
+            //{
+                aufdopplungID = (anzGleisew17 == 0 && vertiPlus == 0) ? "789" : aufdopplungID; // 50x50
+                aufdopplungID = (anzGleisew17 == 2 && vertiPlus == 0) ? "789" : aufdopplungID; // 50x50
+                aufdopplungID = (anzGleisew17 == 3 && vertiPlus == 0) ? "790" : aufdopplungID; // 70x50
+                aufdopplungID = (anzGleisew17 == 4 && vertiPlus == 0) ? "792" : aufdopplungID; // 90x50
+                aufdopplungID = (anzGleisew17 == 0 && vertiPlus == 2070) ? "812" : aufdopplungID; // 60x50
+                aufdopplungID = (anzGleisew17 == 2 && vertiPlus == 2070) ? "812" : aufdopplungID; // 60x50
+                aufdopplungID = (anzGleisew17 == 3 && vertiPlus == 2070) ? "813" : aufdopplungID; // 60x50 + 60x20
+                aufdopplungID = (anzGleisew17 == 4 && vertiPlus == 2070) ? "814" : aufdopplungID; // 60x50 + 60x20
+            //}
+
+
+            fRet = Data.GetPmOptionen("lOption", "2740", Env.GetPmName(), aufdopplungID);
+
+            return fRet;
+        }
+        #endregion;
+
+        #region eBoxPosition
+        /// <summary>
+        /// Find rack wich is near to E-Box1
+        /// </summary>
+        /// <param name="rackPostionsList"> rack postion list from Sql datebase</param>
+        /// <param name="eBoxPostion1">standart E-box postion</param>
+        /// <returns>double value of rack postion from the left side of gutter</returns>
+        public double FindRack1(string[] rackPostionsList, double eBoxPostion1)
+        {
+            double rack1 = 0;
+            foreach (var postionOfrak in rackPostionsList)
+            {
+                var rackPostionToNumber = Convert.ToDouble(postionOfrak);
+                if (eBoxPostion1 - 300 <= rackPostionToNumber && rackPostionToNumber <= eBoxPostion1 + 300)
+                {
+                    rack1 = rackPostionToNumber; //// Checking if near there Ebox is some rack 
+                }
+            }
+            return rack1; //// if rack1 = 0 this means between ALL rack and E-box is save distance
+        }
+
+        /// <summary>
+        /// finds rack1 and rack2 postion wich is neare bot save distance from Ebox1 and Ebox2
+        /// </summary>
+        /// <param name="rackPostionsList"></param>
+        /// <param name="eBoxPostion1">standart E-box1 postion from left side of gutter</param>
+        /// <param name="eBoxPostion2">standartd E-box2 postion from left side of gutter/param>
+        /// <returns>Rlist of Ebox postions </returns>
+        public List<EBoxclass> FindRack1aAndRack2(string[] rackPostionsList, double eBoxPostion1, double eBoxPostion2)
+        {
+            double rack1 = 0;
+            double rack2 = 0;
+            var listOfrack = new List<EBoxclass>();
+            foreach (var postionOfrak in rackPostionsList)
+            {
+                var rackPostionToNumber = Convert.ToDouble(postionOfrak);
+
+                if (eBoxPostion1 - 300 <= rackPostionToNumber && rackPostionToNumber <= eBoxPostion1 + 300)
+                {
+                    rack1 = rackPostionToNumber;  //// Checking if near there Ebox1 is some rack 
+                }
+                if (eBoxPostion2 - 300 <= rackPostionToNumber && rackPostionToNumber <= eBoxPostion2 + 300)
+                {
+                    rack2 = rackPostionToNumber; //// Checking if near there Ebox2 is some rack 
+                }
+            }
+            listOfrack.Add(new EBoxclass { Rack1 = rack1, Rack2 = rack2 });
+            return listOfrack;//// if rack1 = 0 and rack2  this means between all rack and E - boxes is save distance
+        }
+
+        /// <summary>
+        /// case1 when Ebox amount = 1 and Rackamount = 0
+        /// </summary>
+        /// <param name="langthofGutter"> Langth of Gutter</param>
+        /// <returns>List of Ebox positions</returns>
+        public string EboxPostionCase1(double langthofGutter)
+        {
+            var postion = Math.Round(langthofGutter / 2, 2);
+            var eBoxPostion = postion.ToString(); ;
+            return eBoxPostion;
+        }
+
+        /// <summary>
+        /// case2 when Ebox amount =2 and Rackamount = 0
+        /// </summary>
+        /// <param name="langthofGutter"> Langth of Gutter</param>
+        /// <returns>List of Ebox positions</returns>
+        public string EboxpostionCase2(double langthofGutter)
+        {
+            var division = langthofGutter / 3;
+            var eBoxPostion1 = Math.Round(division, 2); //// First Ebox postion Form the left side of gutter. outsidewiew 
+            var eBoxPostion2 = Math.Round(division * 2, 2); //// Second Ebox postion form lef side  of gutter. outsidewiew
+            var eBoxPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+            return eBoxPostions;
+        }
+
+        /// <summary>
+        /// case3 when Ebox amount = 1 and Rackamount > 0 and distance between rack and EBox <= 50mm
+        /// </summary>
+        /// <param name="langthofGutter"> Langth of Gutter</param>
+        /// <param name="rackPostionToNumber"> rack postion from left side of gutter</param>
+        /// <returns>List of Ebox positions</returns>
+        public string EboxPostionCase3(double langthofGutter, double rackPostionToNumber)
+        {
+            var division = langthofGutter / 2;
+            var eBoxPostion1 = division; //// First Ebox postion Form the left side. outsidewiew 
+            var NetzSeite = Env.GetPmWert("NetzSeite").ToLower();
+            if (NetzSeite == "l")
+            {
+                eBoxPostion1 = Math.Round(rackPostionToNumber - 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString();
+                return eBoxPostions;
+            }
+            else
+            {
+                eBoxPostion1 = Math.Round(rackPostionToNumber + 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString();
+                return eBoxPostions;
+            }
+        }
+
+        /// <summary>
+        /// case4 when Ebox amount = 1 and Rackamount =1 ; distance between rack and EBox > 50mm <300;
+        /// </summary>
+        /// <param name="langthofGutter"> Langth of Gutter</param>
+        /// <param name="rack1"> rack postion from left side of gutter</param>
+        /// <returns>List of Ebox positions</returns>
+        public string EboxPostionCase4(double langthofGutter, double rack1)
+        {
+            var division = langthofGutter / 3;
+            var eBoxPostion1 = Math.Round(division, 2); //// First Ebox postion Form the left side. outsidewiew 
+            var distance1 = rack1 - eBoxPostion1;
+            if (distance1 > 0)
+            {
+                eBoxPostion1 = Math.Round(rack1 - 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString();
+                return eBoxPostions;
+            }
+            else
+            {
+                eBoxPostion1 = Math.Round(rack1 + 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString();
+                return eBoxPostions;
+            }
+        }
+
+        /// <summary>
+        /// case 5 Ebox amount = 2 , rack amount >0 and distance between rack and EBox  <=50
+        /// </summary>
+        /// <param name="rack1">first Rack nearst to Ebox1</param>
+        /// <param name="rack2">first Rack nearst to Ebox2</param>
+        /// <returns>List of Ebox positions</returns>
+        public string EboxPostionCase5(double langthofGutter, double rack1, double rack2)
+        {
+            var division = langthofGutter / 3;
+            var eBoxPostion1 = Math.Round(division, 2); //// First Ebox postion Form the left side. outsidewiew 
+            var eBoxPostion2 = division * 2; //// Second Ebox postion form lef side  of gutter. outsidewiew
+            var NetzSeite = Env.GetPmWert("NetzSeite").ToLower();
+            if (NetzSeite == "l")
+            {
+                eBoxPostion1 = Math.Round(rack1 - 300, 2);
+                eBoxPostion2 = Math.Round(rack2 - 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+                return eBoxPostions;
+            }
+            else
+            {
+                eBoxPostion1 = Math.Round(rack1 + 300, 2);
+                eBoxPostion2 = Math.Round(rack2 + 300, 2);
+                var eBoxPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+                return eBoxPostions;
+            }
+        }
+
+        /// <summary>
+        /// case 6 Ebox amount = 2; rack amount > 2 ; distenace between  rack and Ebox >50mm and <300 ;
+        /// </summary>
+        /// <param name="langthofGutter">Langth of Gutter</param>
+        /// <param name="rack1">first Rack nearst to Ebox1</param>
+        /// <param name="rack2">first Rack nearst to Ebox2</param>
+        /// <returns>list of EBox postion</returns>
+        public string EboxpostionCase6(double langthofGutter, double rack1, double rack2)
+        {
+            var eBoxPostions = string.Empty;
+            var division = langthofGutter / 3;
+            var eBoxPostion1 = division; //// First Ebox postion Form the left side. outsidewiew 
+            var eBoxPostion2 = division * 2; //// Second Ebox postion form lef side  of gutter. outsidewiew
+            var distance1 = rack1 - eBoxPostion1;
+            var distance2 = rack2 - eBoxPostion2;
+            if (distance1 > 0)
+            {
+                eBoxPostion1 = rack1 - 300;
+                eBoxPostion2 = rack2 - 300;
+                eBoxPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+                return eBoxPostions;
+            }
+            else
+            {
+                eBoxPostion1 = rack1 + 300;
+                eBoxPostion2 = rack2 + 300;
+                eBoxPostions = eBoxPostion1.ToString() + "/" + eBoxPostion2.ToString();
+                return eBoxPostions;
+            }
+        }
+        #endregion
+    }
+}
