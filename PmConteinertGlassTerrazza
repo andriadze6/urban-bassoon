@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner.PmConteinerClassTerrazza
+{   
+    /// <summary>
+    /// Pm Class For Terrazza 2709
+    /// </summary>
+    public class PmConteinertGlassTerrazza 
+    {
+        /// <summary>
+        /// Make Pm conteiner For Terrazza
+        /// </summary>
+        /// <param name="convertingClass">ConvertingClass used to convert sql data</param>
+        public PmConteinertGlassTerrazza(PmTrasferFromSqlcs convertingClass)
+        {
+            this.EindeckungTyp = convertingClass.GetPmWertBezeichnung("Eindeckung");
+            this.Alpha = convertingClass.GetpmWertAsNumber("alpha");
+            this.Eindeckung = convertingClass.GetpmWertAsString("Eindeckung");
+            this.Achsmass = convertingClass.GetpmWertAsNumber("AchsmassSum");
+            this.Quersprosse = convertingClass.GetpmWertAsString("Quersprosse");
+            this.AnzahlDT = convertingClass.GetpmWertAsNumber("AnzahlDT");
+            this.QuersprosseZus = convertingClass.GetpmWertAsNumber("QuerSprosseZus");
+            this.Sprosseweg = convertingClass.GetpmWertAsNumber("sprosseweg");
+            this.NochEineQuersprosse = convertingClass.GetpmWertAsString("NochEineQuersprosse");
+            this.Lg1 = convertingClass.GetpmWertAsNumber("Lg1");
+            this.LargerLg = convertingClass.GetpmWertAsNumber("LargerLg");
+            this.Lg2 = convertingClass.GetpmWertAsNumber("Lg2");
+            this.DLufter = convertingClass.GetpmWertAsString("Dachlufter");
+            this.AnzahlDL = convertingClass.GetpmWertAsNumber("AnzahlDL");
+            this.Lgu = convertingClass.GetpmWertAsNumber("Lgu");
+            this.STiefeDU = convertingClass.GetpmWertAsNumber("TiefeDUE");
+            this.SOhneRinne = convertingClass.GetpmWertAsNumber("OhneDachrinneDU");
+            this.SWigaSystem = convertingClass.GetpmWertAsString("WiGaSystem");
+            this.LDT = convertingClass.GetpmWertAsNumber("LDT");
+            this.RinnenArt = convertingClass.GetpmWertAsString("RinnenArt");
+            this.Quersprosse = convertingClass.GetpmWertAsString("Quersprosse");
+        }
+
+        /// <summary>
+        /// PM QuersprosseZus Bezeichnung
+        /// </summary>
+        public double QuersprosseZus { get; set; }
+
+        /// <summary>
+        /// PM EindeckungTyp Bezeichnung
+        /// </summary>
+        public string EindeckungTyp { get; set; }
+
+        /// <summary>
+        ///  Pm Alpha
+        /// </summary>
+        public double Alpha { get; set; }
+
+        /// <summary>
+        /// Pm Eindeckung
+        /// </summary>
+        public string Eindeckung { get; set; }
+
+        /// <summary>
+        /// Pm AchsmassSum
+        /// </summary>
+        public double Achsmass { get; set; }
+
+        /// <summary>
+        /// Pm Quersprosse 
+        /// </summary>
+        public string Auersprosse { get; set; }
+
+        /// <summary>
+        /// pm AnzahlDT 
+        /// </summary>
+        public double AnzahlDT { get; set; } 
+
+        /// <summary>
+        /// PM sprosseweg
+        /// </summary>
+        public double Sprosseweg { get; set; }
+
+        /// <summary>
+        /// Pm NochEineQuersprosse
+        /// </summary>
+        public string NochEineQuersprosse { get; set; }
+
+        /// <summary>
+        /// Pm Lg1
+        /// </summary>
+        public double Lg1 { get; set; }
+
+        /// <summary>
+        /// Pm  LargerLg
+        /// </summary>
+        public double LargerLg { get; set; }
+
+        /// <summary>
+        /// Pm Lg2
+        /// </summary>
+        public double Lg2 { get; set; }
+
+        /// <summary>
+        /// Pm Dachlufter
+        /// </summary>
+        public string DLufter { get; set; }
+
+        /// <summary>
+        /// Pm AnzahlDL
+        /// </summary>
+        public double AnzahlDL { get; set; }
+
+        /// <summary>
+        /// Pm Lgu
+        /// </summary>
+        public double Lgu { get; set; }
+
+        /// <summary>
+        /// Pm TiefeDUE
+        /// </summary>
+        public double STiefeDU { get; set; }
+
+        /// <summary>
+        /// Pm OhneDachrinneDU
+        /// </summary>
+        public double SOhneRinne { get; set; }
+
+        /// <summary>
+        /// Pm WiGaSystem
+        /// </summary>
+        public string SWigaSystem { get; set; }
+
+        /// <summary>
+        /// Pm LDT
+        /// </summary>
+        public double LDT { get; set; }
+
+        /// <summary>
+        /// Pm RinnenArt
+        /// </summary>
+        public string RinnenArt { get; set; }
+
+        /// <summary>
+        /// PM Quersprosse
+        /// </summary>
+        public string Quersprosse { get; set; }
+    }
+}
