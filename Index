@@ -1,0 +1,318 @@
+@{
+    ViewBag.Title = "W17 Gleise/Flügel anpassen";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h3>W17 Gleise/Flügel anpassen</h3>
+
+
+
+<style>
+    .containerDiv {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: self-end;
+        background-color: #dbe0ea;
+        padding: 3%;
+        width: auto;
+    }
+
+    .labelClass {
+        font-weight: bold;
+    }
+
+    #BelegNr, #PosNr {
+        width: 91%;
+        padding: 9px;
+        border: 2px solid #001E36;
+        margin: 5px;
+        height: auto;
+        color: #001E36;
+        text-align: center;
+    }
+
+    .myBtn {
+        width: 32%;
+        padding: 8px;
+        background-color: #e3000f;
+        color: #ffffff;
+        border: 1px solid transparent;
+        font-weight: bold;
+        margin-bottom: 10px;
+        margin-top: 25px;
+    }
+
+    #search, #AddGlass {
+        padding: 8px;
+        background-color: #e3000f;
+        border: solid 2px #e3000f;
+        color: #ffffff;
+        width: 18%;
+        margin: 5px;
+        text-align: center;
+        font-size: large;
+    }
+
+    .labelClass1 {
+        font: bold;
+        font-weight: 100;
+        color: white;
+        font-stretch: expanded;
+        padding: 8px;
+        text-align: center;
+        font-size: large;
+    }
+    .headerClass {
+        background-color: #99acbb;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+
+    table {
+        border: 1px solid #D6EEEE;
+        border-collapse: separate;
+        border-spacing: 0px;
+        width: 100%;
+    }
+
+    #NumberofGlass
+    {
+        text-align:center;
+        border-style:none;
+    }
+
+    #Numberofwings {
+        text-align: center;
+        border-style: none;
+    }
+
+    #OverWrite, #change1 {
+        width: 50%;
+        margin-left: 25%;
+        border: 2px solid #001E36;
+        border-radius: 10px;
+        background-color: #e3000f;
+        text-align: center;
+        font-size: large;
+        color: #ffffff;
+        align-content: center;
+    }
+
+    .OverWrite {
+        text-align: center;
+        column-span: all;
+    }
+    th {
+        position: static:center;
+        top: 0px;
+        position: sticky;
+    }
+
+    .table-wrapper {
+        max-height: 450px;
+    }
+
+    th, td {
+        border: 1px solid #D6EEEE;
+        padding: 5px;
+        width: 8%;
+        text-align:center;
+    }
+
+    .outer-wrapper {
+        border: 1px solid #D6EEEE;
+        box-shadow: 0px 0px 3px black;
+        margin: 0px;
+        border-radius: 3px;
+        display:none;
+    }
+
+    tr:hover {
+        background-color: #D6EEEE;
+    }
+    .success {
+        background-color: green;
+        font-size :20px;
+    }
+    /* Green */
+    .danger {
+        background-color: #e3000f;
+    }
+    /* Red */
+</style>
+<div>
+    <div class="containerDiv">
+        <div class="form-group" style="float: left; width: 34%; margin-top: -24px">
+            <label class="labelClass">BelegNr</label>
+            <input id="BelegNr" type="text">
+        </div>
+        <div class="form-group" style="width: 34%; margin-top: -24px">
+            <br>
+            <label class="labelClass">PosNr</label>
+            <input id="PosNr" type="text">
+            <label class="error-hint warningMessage" style="display: none">Endforlich</label>
+        </div>
+        <button id="search" type="button">Suche</button>
+    </div>
+    <div class="labelClass1 danger" id="warningAlert" style="display:none">
+        <span>Bitte alle Felder ausfüllen</span>
+    </div>
+    <div class="labelClass1 danger" id="warningAlert2" style="display:none">
+        <span>Informationen nicht finden</span>
+    </div>
+    <div class="labelClass1 danger" id="warningAlert3" style="display:none">
+        <span>Auftrags- oder Positionsnummer nicht korrekt; keine W17</span>
+    </div>
+    <div class="outer-wrapper">
+        <div class="table-wrapper">
+            <table id="Results">
+                <thead style="background-color: #F5F5F5">
+                    <tr tr id="tablehed">
+                        <th style="width:30%">PMLabel</th>
+                        <th style="width:30%">PMWertBezeichnung</th>
+                        <th style="width:13.3%">PMWert</th>
+                        <th style="width:13.3%">Anzahl Gleise</th>
+                        <th style="width:13.3%">Anzahl Flügel</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    <tr>
+                        <td id="PMLabel"></td>
+                        <td id="PMWertBezeichnung"></td>
+                        <td id="PMWert"></td>
+                        <td id="tdNumberofGleise">
+                            <div id="gio6" style="display:none"></div>
+                            <div> 
+                                <select id="NumberofGleise" style="display:none">  
+                                    <option id="Choose" value="">Choose</option>
+                                    <option id="Trail2" value="2">2</option>
+                                    <option id="Trail3" value="3">3</option>
+                                    <option id="Trail4" value="4">4</option>
+                                    <option id="Trail5" value="5">5</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td>
+                            <div id="DivNumberofwings" style="display:none"></div>
+                            <div><select id="Numberofwings" style="display:none">
+                                <option value="">choose</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="8">8</option>
+                                <option value="10">10</option>
+                                </select></div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <input id="change1" style="align-content:center" type="button" value="Anzahl Gleise/Flügel ändern">
+            <input id="OverWrite" style="align-content:center" type="button" value="Neue Werte speichern">
+        </div>
+        <div class="labelClass1 success" id="succsed" style="display:none">
+            <span>Änderung gespeichert! Bitte in ProCon „3D Bilder nacherzeugen“ für die Anpassung der Ansichten!!</span>
+        </div>
+        <div class="labelClass1 danger" id="fale" style="display:none">
+            <span>Achtung! Glasmaße zu groß! Änderung nicht gespeichert!</span>
+        </div>
+    </div>
+</div>
+<script>
+    var width = "";
+    $('#search').click(function myfunction() {
+        $('#change').hide();
+        $('#OverWrite').hide();
+        $('#change1').hide();
+        $('#OverWrite').hide();
+        $('#fale').hide();
+        $('#succsed').hide();
+        $('#NumberofGleise').hide();
+        $('#Numberofwings').hide();
+        showPmValues();
+    });
+
+    function showPmValues()
+    {
+        $('#NumberofGleise').hide();
+        $('#Numberofwings').hide();
+        var belegNr = document.getElementById("BelegNr").value;
+        var posNr = document.getElementById("PosNr").value;
+        if (belegNr == "" || posNr == "") {
+            $("#warningAlert").show();
+        }
+        else
+        {
+            $.ajax({
+                url: '@Url.Action("TrasnFerDataFromDatabase", "W17Gleise")',
+                data: { belegNr: belegNr, posNr: posNr },
+                success: function (results) {
+                    var lengt = results.Value.length;
+                    if (results.Value[0] == "False") {
+                        $("#warningAlert2").show();
+                    }
+                    if (lengt != 0) {
+                        width = results.Value[5];
+                        $("#warningAlert2").hide();
+                        $("#warningAlert").hide();
+                        $("#warningAlert3").hide();
+                        $("#PMLabel").html(results.Value[0]);
+                        $("#PMWertBezeichnung").html(results.Value[1]);
+                        $("#PMWert").html(results.Value[2]);
+                        $('#gio6').html(results.Value[3]).css("display", "block");;
+                        $('#DivNumberofwings').html(results.Value[4]).css("display", "block");
+                        $(".outer-wrapper").show();
+                        $('#change1').show();
+                    }
+                    else {
+                        $("#warningAlert3").show();
+                    }
+                }
+            });
+        }
+    };
+
+    $('#change1').click(function changeTrailsNumber() {
+        $('#gio6').empty();
+        $('#NumberofGleise').show();
+        $('#NumberofGleise').show();
+        $('#DivNumberofwings').hide();
+        $('#Numberofwings').show();
+        $('#change1').hide();
+        $('#OverWrite').show();
+    });
+    $("#OverWrite").click(function () {
+        $('#succsed').hide();
+        $('#fale').hide();
+        var belegNr = document.getElementById("BelegNr").value;
+        var posNr = document.getElementById("PosNr").value;
+        var wingNumber = document.getElementById("Numberofwings").value;
+        var glasNumber = document.getElementById("NumberofGleise").value;
+        if (wingNumber == "" || glasNumber == "") {
+            $("#warningAlert").show();
+        }
+        else {
+            $.ajax({
+                url: '@Url.Action("SaveChangedPmValue", "W17Gleise")',
+                data: { orderNumber: belegNr, posNumber: posNr, anzahlFlugel: wingNumber, anzahlGleise: glasNumber },
+                success: function (results) {
+                    if (results.Value == true) {
+                        showPmValues();
+                        $("#fale").hide();
+                        $("#succsed").show();
+                        $("#OverWrite").hide();
+                    }
+                    else {
+                        $("#OverWrite").hide();
+                        showPmValues();
+                        $("#fale").show();
+                    }
+                }
+            })
+        }
+    });
+</script>
