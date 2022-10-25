@@ -1,0 +1,178 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using WeinorAppServer.Database;
+using WeinorAppServer.Model.Entities.Verkauf;
+using WeinorAppServer.PCF.Services.Glass_calculation.Helper.PmTrasferFromSql;
+
+namespace WeinorAppServer.PCF.Services.Glass_calculation.Conteiner
+{
+    /// <summary>
+    /// W-17 Pm conteiners thats was trasfered from Sql date Base
+    /// </summary>
+    public class W17PmConteiner
+    {
+        /// <summary>
+        /// Constractor for Class
+        /// </summary>
+        /// <param name="convertingClass">accasse to sqldate base</param>
+        public W17PmConteiner(PmTrasferFromSqlcs convertingClass)
+        {
+            ////this.SumwingsNumber = convertingClass.GetpmWertAsNumber("AnzahlFluegelGesamt");
+            this.Daempfer = convertingClass.GetpmWertAsNumber("Daempfer");
+            this.DaempferEF = convertingClass.GetpmWertAsNumber("DaempferEF");
+            this.Oeffnungsrichtung = convertingClass.GetpmWertAsString("Oeffnungsrichtung");
+            this.FPUnten = convertingClass.GetpmWertAsString("FPUnten");
+            this.VorauswahlBedienung = Convert.ToInt32(convertingClass.GetpmWertAsNumber("VorauswahlBedienung"));
+            this.VorauswahlBedienungEF = Convert.ToInt32(convertingClass.GetpmWertAsNumber("VorauswahlBedienungEF"));
+            this.SsGlasTyp = convertingClass.GetPmWertBezeichnung("Verglasung");
+            this.GlasTypWert = convertingClass.GetpmWertAsNumber("Verglasung");
+            this.Stulp = convertingClass.GetpmWertAsString("Stulp");
+            this.Ecke90L = convertingClass.GetpmWertAsString("Ecke90L");
+            this.Ecke90R = convertingClass.GetpmWertAsString("Ecke90R");
+            this.HoeheGriff = convertingClass.GetpmWertAsNumber("HoeheGriff");
+            this.HoeheSpezialFuss1 = convertingClass.GetpmWertAsNumber("HoeheSpezialFuss1");
+            this.HoeheWAOt = convertingClass.GetpmWertAsNumber("HoeheWAOt");
+            this.HoeheBedienungEF = convertingClass.GetpmWertAsNumber("HoeheBedienungEF");
+            this.SAbzugSeiteL = convertingClass.GetpmWertAsNumber("AbzugGlasL");
+            this.SAbzugSeiteR = convertingClass.GetpmWertAsNumber("AbzugGlasR");
+            this.WAPL = convertingClass.GetpmWertAsString("WAPL");
+            this.WAPR = convertingClass.GetpmWertAsString("WAPR");
+            this.Breite = convertingClass.GetpmWertAsNumber("Breite"); 
+            this.Tiefe = convertingClass.GetpmWertAsNumber("Tiefe");
+            if (this.Ecke90L == "0")
+            {
+                if (this.WAPL == "0")
+                {
+                    this.SAbzugSeiteL = 8;
+                }
+                else
+                {
+                    this.SAbzugSeiteL = 26;
+                }
+            }
+
+            if (this.Ecke90R == "0")
+            {
+                if (this.WAPR == "0")
+                {
+                    this.SAbzugSeiteR = 8;
+                }
+                else
+                {
+                    this.SAbzugSeiteR = 26;
+                }
+            }
+            if (this.DaempferEF != 0)
+            {
+                this.DaempferEF = 1;
+            }
+        }
+
+        /// <summary>
+        /// Soft-Closing-System pm value as number
+        /// </summary>
+        public double Daempfer { get; set; }
+
+        /// <summary>
+        /// Soft-closing system for demand fixture pm value as number
+        /// </summary>
+        public double DaempferEF { get; set; }
+
+        /// <summary>
+        /// Opening direction
+        /// </summary>
+        public string Oeffnungsrichtung { get; set; }
+
+        /// <summary>
+        /// Execution bottom rail
+        /// </summary>
+        public string FPUnten { get; set; }
+
+        /// <summary>
+        /// Handle bar type
+        /// </summary>
+        public int VorauswahlBedienung { get; set; }
+
+        /// <summary>
+        /// Additional operation on the end leaf
+        /// </summary>
+        public int VorauswahlBedienungEF { get; set; }
+
+        /// <summary>
+        /// Glazing Pmwert
+        /// </summary>
+        public double GlasTypWert { get; set; }
+
+        /// <summary>
+        /// Glazing Pm
+        /// </summary>
+        public string SsGlasTyp { get; set; }
+
+        /// <summary>
+        /// Forend design
+        /// </summary>
+        public string Stulp { get; set; }
+
+        /// <summary>
+        /// Angle 90° on the Left side
+        /// </summary>
+        public string Ecke90L { get; set; }
+
+        /// <summary>
+        /// Angle 90° on the Right side
+        /// </summary>
+        public string Ecke90R { get; set; }
+
+        /// <summary>
+        /// Height of handle from lower edge of guide rail (mm)
+        /// </summary>
+        public double HoeheGriff { get; set; }
+
+        /// <summary>
+        /// Height of shell handle from lower edge of guide rail (mm)
+        /// </summary>
+        public double HoeheSpezialFuss1 { get; set; }
+
+        /// <summary>
+        /// Height of lock from lower edge of guide rail
+        /// </summary>
+        public double HoeheWAOt { get; set; }
+
+        /// <summary>
+        /// Height of operation EF from lower edge of guide rail(mm)
+        /// </summary>
+        public double HoeheBedienungEF { get; set; }
+
+        /// <summary>
+        /// Abzugsmaß Glas Ecke links
+        /// </summary>
+        public double SAbzugSeiteL { get; set; }
+
+        /// <summary>
+        /// Vorrang rechte Seite
+        /// </summary>
+        public double SAbzugSeiteR { get; set; }
+
+        /// <summary>
+        /// Wall connection profile left
+        /// </summary>
+        public string WAPL { get; set; }
+
+        /// <summary>
+        /// Wall connection profile Right
+        /// </summary>
+        public string WAPR { get; set; }
+
+        /// <summary>
+        /// W17 Width
+        /// </summary>
+        public double Breite { get; set; }
+
+        /// <summary>
+        /// W17 Width
+        /// </summary>
+        public double Tiefe { get; set; }
+    }
+}
