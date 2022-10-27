@@ -82,8 +82,11 @@ namespace WeinorAppServer.PCF.Services.BugsFromFolder
             foreach (var item in this.pathArray)
             {
                 this.file = Directory.GetFiles(item).ToList();
-                this.textPath = item;
-                this.CheckFile();
+                if (this.file.Count != 0)
+                {
+                    this.textPath = item;
+                    this.CheckFile();
+                }
             }
         }
 
@@ -97,10 +100,10 @@ namespace WeinorAppServer.PCF.Services.BugsFromFolder
                 var count = 0;
                 foreach (var doc in this.file)
                 {
-                    var index = doc.LastIndexOf(".");
-                    var docType = doc.Substring(index);
-                    if (docType == ".csv" || docType == ".ncw")
+                    var docType = Path.GetExtension(doc);
+                    if ((docType == ".csv" || docType == ".ncw") && !doc.Contains("~$"))    
                     {
+                        //// !doc.Contains("~$") this checks if  file is not temporary,
                         var creationTime = File.GetCreationTime(doc);
                         var createHour = creationTime.Hour;
                         var diffHour = Math.Abs(this.hour - createHour);
@@ -134,6 +137,7 @@ namespace WeinorAppServer.PCF.Services.BugsFromFolder
                 var email2 = "plychtva@weinor.de";
                 var email3 = "jbungarz@weinor.de";
                 var email4 = "dschedel@weinor.de";
+                var email5 = "gandriadze@weinor.de";
                 var mailProxy = ServiceFactory<IMailService>.CreateProxy();
                 var message = new MailMessage();
                 message.From = new MailAddress(Konstanten.EmailAbsenderStandard);
@@ -141,6 +145,7 @@ namespace WeinorAppServer.PCF.Services.BugsFromFolder
                 message.To.Add(new MailAddress(email2));
                 message.To.Add(new MailAddress(email3));
                 message.To.Add(new MailAddress(email4));
+                message.To.Add(new MailAddress(email5));
                 message.Subject = string.Format(text);
                 mailProxy.Send(message);
             }
